@@ -1,0 +1,2804 @@
+{
+  "elements": [
+    {
+      "type": "way",
+      "id": 1,
+      "tags": { "highway": "footway" },
+      "nodes": [100000, 100001],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.024 },
+        { "lat": 37.494, "lon": 127.025 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 2,
+      "tags": { "highway": "footway" },
+      "nodes": [100001, 100002],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.025 },
+        { "lat": 37.494, "lon": 127.026 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 3,
+      "tags": { "highway": "footway" },
+      "nodes": [100002, 100003],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.026 },
+        { "lat": 37.494, "lon": 127.027 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 4,
+      "tags": { "highway": "footway" },
+      "nodes": [100003, 100004],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.027 },
+        { "lat": 37.494, "lon": 127.028 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 5,
+      "tags": { "highway": "footway" },
+      "nodes": [100004, 100005],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.028 },
+        { "lat": 37.494, "lon": 127.029 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 6,
+      "tags": { "highway": "footway" },
+      "nodes": [100005, 100006],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.029 },
+        { "lat": 37.494, "lon": 127.03 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 7,
+      "tags": { "highway": "footway" },
+      "nodes": [100006, 100007],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.03 },
+        { "lat": 37.494, "lon": 127.031 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 8,
+      "tags": { "highway": "footway" },
+      "nodes": [100007, 100008],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.031 },
+        { "lat": 37.494, "lon": 127.03200000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 9,
+      "tags": { "highway": "footway" },
+      "nodes": [100008, 100009],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.03200000000001 },
+        { "lat": 37.494, "lon": 127.033 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 10,
+      "tags": { "highway": "footway" },
+      "nodes": [100009, 100010],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.033 },
+        { "lat": 37.494, "lon": 127.034 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 11,
+      "tags": { "highway": "footway" },
+      "nodes": [100010, 100011],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.034 },
+        { "lat": 37.494, "lon": 127.03500000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 12,
+      "tags": { "highway": "footway" },
+      "nodes": [100011, 100012],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.03500000000001 },
+        { "lat": 37.494, "lon": 127.036 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 13,
+      "tags": { "highway": "footway" },
+      "nodes": [100012, 100013],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.036 },
+        { "lat": 37.494, "lon": 127.037 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 14,
+      "tags": { "highway": "footway" },
+      "nodes": [100013, 100014],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.037 },
+        { "lat": 37.494, "lon": 127.03800000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 15,
+      "tags": { "highway": "footway" },
+      "nodes": [100014, 100015],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.03800000000001 },
+        { "lat": 37.494, "lon": 127.039 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 16,
+      "tags": { "highway": "footway" },
+      "nodes": [100015, 100016],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.039 },
+        { "lat": 37.494, "lon": 127.04 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 17,
+      "tags": { "highway": "footway" },
+      "nodes": [100017, 100018],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.024 },
+        { "lat": 37.495, "lon": 127.025 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 18,
+      "tags": { "highway": "footway" },
+      "nodes": [100018, 100019],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.025 },
+        { "lat": 37.495, "lon": 127.026 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 19,
+      "tags": { "highway": "footway" },
+      "nodes": [100019, 100020],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.026 },
+        { "lat": 37.495, "lon": 127.027 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 20,
+      "tags": { "highway": "footway" },
+      "nodes": [100020, 100021],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.027 },
+        { "lat": 37.495, "lon": 127.028 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 21,
+      "tags": { "highway": "footway" },
+      "nodes": [100021, 100022],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.028 },
+        { "lat": 37.495, "lon": 127.029 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 22,
+      "tags": { "highway": "footway" },
+      "nodes": [100022, 100023],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.029 },
+        { "lat": 37.495, "lon": 127.03 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 23,
+      "tags": { "highway": "footway" },
+      "nodes": [100023, 100024],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.03 },
+        { "lat": 37.495, "lon": 127.031 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 24,
+      "tags": { "highway": "footway" },
+      "nodes": [100024, 100025],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.031 },
+        { "lat": 37.495, "lon": 127.03200000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 25,
+      "tags": { "highway": "footway" },
+      "nodes": [100025, 100026],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.03200000000001 },
+        { "lat": 37.495, "lon": 127.033 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 26,
+      "tags": { "highway": "footway" },
+      "nodes": [100026, 100027],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.033 },
+        { "lat": 37.495, "lon": 127.034 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 27,
+      "tags": { "highway": "footway" },
+      "nodes": [100027, 100028],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.034 },
+        { "lat": 37.495, "lon": 127.03500000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 28,
+      "tags": { "highway": "footway" },
+      "nodes": [100028, 100029],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.03500000000001 },
+        { "lat": 37.495, "lon": 127.036 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 29,
+      "tags": { "highway": "footway" },
+      "nodes": [100029, 100030],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.036 },
+        { "lat": 37.495, "lon": 127.037 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 30,
+      "tags": { "highway": "footway" },
+      "nodes": [100030, 100031],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.037 },
+        { "lat": 37.495, "lon": 127.03800000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 31,
+      "tags": { "highway": "footway" },
+      "nodes": [100031, 100032],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.03800000000001 },
+        { "lat": 37.495, "lon": 127.039 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 32,
+      "tags": { "highway": "footway" },
+      "nodes": [100032, 100033],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.039 },
+        { "lat": 37.495, "lon": 127.04 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 33,
+      "tags": { "highway": "footway" },
+      "nodes": [100034, 100035],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.024 },
+        { "lat": 37.496, "lon": 127.025 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 34,
+      "tags": { "highway": "footway" },
+      "nodes": [100035, 100036],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.025 },
+        { "lat": 37.496, "lon": 127.026 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 35,
+      "tags": { "highway": "footway" },
+      "nodes": [100036, 100037],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.026 },
+        { "lat": 37.496, "lon": 127.027 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 36,
+      "tags": { "highway": "footway" },
+      "nodes": [100037, 100038],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.027 },
+        { "lat": 37.496, "lon": 127.028 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 37,
+      "tags": { "highway": "footway" },
+      "nodes": [100038, 100039],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.028 },
+        { "lat": 37.496, "lon": 127.029 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 38,
+      "tags": { "highway": "footway" },
+      "nodes": [100039, 100040],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.029 },
+        { "lat": 37.496, "lon": 127.03 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 39,
+      "tags": { "highway": "footway" },
+      "nodes": [100040, 100041],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.03 },
+        { "lat": 37.496, "lon": 127.031 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 40,
+      "tags": { "highway": "footway" },
+      "nodes": [100041, 100042],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.031 },
+        { "lat": 37.496, "lon": 127.03200000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 41,
+      "tags": { "highway": "footway" },
+      "nodes": [100042, 100043],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.03200000000001 },
+        { "lat": 37.496, "lon": 127.033 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 42,
+      "tags": { "highway": "footway" },
+      "nodes": [100043, 100044],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.033 },
+        { "lat": 37.496, "lon": 127.034 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 43,
+      "tags": { "highway": "footway" },
+      "nodes": [100044, 100045],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.034 },
+        { "lat": 37.496, "lon": 127.03500000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 44,
+      "tags": { "highway": "footway" },
+      "nodes": [100045, 100046],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.03500000000001 },
+        { "lat": 37.496, "lon": 127.036 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 45,
+      "tags": { "highway": "footway" },
+      "nodes": [100046, 100047],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.036 },
+        { "lat": 37.496, "lon": 127.037 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 46,
+      "tags": { "highway": "footway" },
+      "nodes": [100047, 100048],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.037 },
+        { "lat": 37.496, "lon": 127.03800000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 47,
+      "tags": { "highway": "footway" },
+      "nodes": [100048, 100049],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.03800000000001 },
+        { "lat": 37.496, "lon": 127.039 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 48,
+      "tags": { "highway": "footway" },
+      "nodes": [100049, 100050],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.039 },
+        { "lat": 37.496, "lon": 127.04 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 49,
+      "tags": { "highway": "footway" },
+      "nodes": [100051, 100052],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.024 },
+        { "lat": 37.497, "lon": 127.025 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 50,
+      "tags": { "highway": "footway" },
+      "nodes": [100052, 100053],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.025 },
+        { "lat": 37.497, "lon": 127.026 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 51,
+      "tags": { "highway": "footway" },
+      "nodes": [100053, 100054],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.026 },
+        { "lat": 37.497, "lon": 127.027 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 52,
+      "tags": { "highway": "footway" },
+      "nodes": [100054, 100055],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.027 },
+        { "lat": 37.497, "lon": 127.028 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 53,
+      "tags": { "highway": "footway" },
+      "nodes": [100055, 100056],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.028 },
+        { "lat": 37.497, "lon": 127.029 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 54,
+      "tags": { "highway": "footway" },
+      "nodes": [100056, 100057],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.029 },
+        { "lat": 37.497, "lon": 127.03 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 55,
+      "tags": { "highway": "footway" },
+      "nodes": [100057, 100058],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.03 },
+        { "lat": 37.497, "lon": 127.031 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 56,
+      "tags": { "highway": "footway" },
+      "nodes": [100058, 100059],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.031 },
+        { "lat": 37.497, "lon": 127.03200000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 57,
+      "tags": { "highway": "footway" },
+      "nodes": [100059, 100060],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.03200000000001 },
+        { "lat": 37.497, "lon": 127.033 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 58,
+      "tags": { "highway": "footway" },
+      "nodes": [100060, 100061],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.033 },
+        { "lat": 37.497, "lon": 127.034 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 59,
+      "tags": { "highway": "footway" },
+      "nodes": [100061, 100062],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.034 },
+        { "lat": 37.497, "lon": 127.03500000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 60,
+      "tags": { "highway": "footway" },
+      "nodes": [100062, 100063],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.03500000000001 },
+        { "lat": 37.497, "lon": 127.036 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 61,
+      "tags": { "highway": "footway" },
+      "nodes": [100063, 100064],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.036 },
+        { "lat": 37.497, "lon": 127.037 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 62,
+      "tags": { "highway": "footway" },
+      "nodes": [100064, 100065],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.037 },
+        { "lat": 37.497, "lon": 127.03800000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 63,
+      "tags": { "highway": "footway" },
+      "nodes": [100065, 100066],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.03800000000001 },
+        { "lat": 37.497, "lon": 127.039 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 64,
+      "tags": { "highway": "footway" },
+      "nodes": [100066, 100067],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.039 },
+        { "lat": 37.497, "lon": 127.04 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 65,
+      "tags": { "highway": "footway" },
+      "nodes": [100068, 100069],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.024 },
+        { "lat": 37.498000000000005, "lon": 127.025 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 66,
+      "tags": { "highway": "footway" },
+      "nodes": [100069, 100070],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.025 },
+        { "lat": 37.498000000000005, "lon": 127.026 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 67,
+      "tags": { "highway": "footway" },
+      "nodes": [100070, 100071],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.026 },
+        { "lat": 37.498000000000005, "lon": 127.027 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 68,
+      "tags": { "highway": "footway" },
+      "nodes": [100071, 100072],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.027 },
+        { "lat": 37.498000000000005, "lon": 127.028 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 69,
+      "tags": { "highway": "footway" },
+      "nodes": [100072, 100073],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.028 },
+        { "lat": 37.498000000000005, "lon": 127.029 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 70,
+      "tags": { "highway": "footway" },
+      "nodes": [100073, 100074],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.029 },
+        { "lat": 37.498000000000005, "lon": 127.03 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 71,
+      "tags": { "highway": "footway" },
+      "nodes": [100074, 100075],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.03 },
+        { "lat": 37.498000000000005, "lon": 127.031 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 72,
+      "tags": { "highway": "footway" },
+      "nodes": [100075, 100076],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.031 },
+        { "lat": 37.498000000000005, "lon": 127.03200000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 73,
+      "tags": { "highway": "footway" },
+      "nodes": [100076, 100077],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.03200000000001 },
+        { "lat": 37.498000000000005, "lon": 127.033 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 74,
+      "tags": { "highway": "footway" },
+      "nodes": [100077, 100078],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.033 },
+        { "lat": 37.498000000000005, "lon": 127.034 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 75,
+      "tags": { "highway": "footway" },
+      "nodes": [100078, 100079],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.034 },
+        { "lat": 37.498000000000005, "lon": 127.03500000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 76,
+      "tags": { "highway": "footway" },
+      "nodes": [100079, 100080],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.03500000000001 },
+        { "lat": 37.498000000000005, "lon": 127.036 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 77,
+      "tags": { "highway": "footway" },
+      "nodes": [100080, 100081],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.036 },
+        { "lat": 37.498000000000005, "lon": 127.037 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 78,
+      "tags": { "highway": "footway" },
+      "nodes": [100081, 100082],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.037 },
+        { "lat": 37.498000000000005, "lon": 127.03800000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 79,
+      "tags": { "highway": "footway" },
+      "nodes": [100082, 100083],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.03800000000001 },
+        { "lat": 37.498000000000005, "lon": 127.039 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 80,
+      "tags": { "highway": "footway" },
+      "nodes": [100083, 100084],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.039 },
+        { "lat": 37.498000000000005, "lon": 127.04 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 81,
+      "tags": { "highway": "footway" },
+      "nodes": [100085, 100086],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.024 },
+        { "lat": 37.499, "lon": 127.025 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 82,
+      "tags": { "highway": "footway" },
+      "nodes": [100086, 100087],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.025 },
+        { "lat": 37.499, "lon": 127.026 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 83,
+      "tags": { "highway": "footway" },
+      "nodes": [100087, 100088],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.026 },
+        { "lat": 37.499, "lon": 127.027 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 84,
+      "tags": { "highway": "footway" },
+      "nodes": [100088, 100089],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.027 },
+        { "lat": 37.499, "lon": 127.028 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 85,
+      "tags": { "highway": "footway" },
+      "nodes": [100089, 100090],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.028 },
+        { "lat": 37.499, "lon": 127.029 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 86,
+      "tags": { "highway": "footway" },
+      "nodes": [100090, 100091],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.029 },
+        { "lat": 37.499, "lon": 127.03 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 87,
+      "tags": { "highway": "footway" },
+      "nodes": [100091, 100092],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.03 },
+        { "lat": 37.499, "lon": 127.031 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 88,
+      "tags": { "highway": "footway" },
+      "nodes": [100092, 100093],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.031 },
+        { "lat": 37.499, "lon": 127.03200000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 89,
+      "tags": { "highway": "footway" },
+      "nodes": [100093, 100094],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.03200000000001 },
+        { "lat": 37.499, "lon": 127.033 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 90,
+      "tags": { "highway": "footway" },
+      "nodes": [100094, 100095],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.033 },
+        { "lat": 37.499, "lon": 127.034 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 91,
+      "tags": { "highway": "footway" },
+      "nodes": [100095, 100096],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.034 },
+        { "lat": 37.499, "lon": 127.03500000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 92,
+      "tags": { "highway": "footway" },
+      "nodes": [100096, 100097],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.03500000000001 },
+        { "lat": 37.499, "lon": 127.036 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 93,
+      "tags": { "highway": "footway" },
+      "nodes": [100097, 100098],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.036 },
+        { "lat": 37.499, "lon": 127.037 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 94,
+      "tags": { "highway": "footway" },
+      "nodes": [100098, 100099],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.037 },
+        { "lat": 37.499, "lon": 127.03800000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 95,
+      "tags": { "highway": "footway" },
+      "nodes": [100099, 100100],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.03800000000001 },
+        { "lat": 37.499, "lon": 127.039 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 96,
+      "tags": { "highway": "footway" },
+      "nodes": [100100, 100101],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.039 },
+        { "lat": 37.499, "lon": 127.04 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 97,
+      "tags": { "highway": "footway" },
+      "nodes": [100102, 100103],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.024 },
+        { "lat": 37.5, "lon": 127.025 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 98,
+      "tags": { "highway": "footway" },
+      "nodes": [100103, 100104],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.025 },
+        { "lat": 37.5, "lon": 127.026 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 99,
+      "tags": { "highway": "footway" },
+      "nodes": [100104, 100105],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.026 },
+        { "lat": 37.5, "lon": 127.027 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 100,
+      "tags": { "highway": "footway" },
+      "nodes": [100105, 100106],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.027 },
+        { "lat": 37.5, "lon": 127.028 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 101,
+      "tags": { "highway": "footway" },
+      "nodes": [100106, 100107],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.028 },
+        { "lat": 37.5, "lon": 127.029 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 102,
+      "tags": { "highway": "footway" },
+      "nodes": [100107, 100108],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.029 },
+        { "lat": 37.5, "lon": 127.03 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 103,
+      "tags": { "highway": "footway" },
+      "nodes": [100108, 100109],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.03 },
+        { "lat": 37.5, "lon": 127.031 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 104,
+      "tags": { "highway": "footway" },
+      "nodes": [100109, 100110],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.031 },
+        { "lat": 37.5, "lon": 127.03200000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 105,
+      "tags": { "highway": "footway" },
+      "nodes": [100110, 100111],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.03200000000001 },
+        { "lat": 37.5, "lon": 127.033 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 106,
+      "tags": { "highway": "footway" },
+      "nodes": [100111, 100112],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.033 },
+        { "lat": 37.5, "lon": 127.034 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 107,
+      "tags": { "highway": "footway" },
+      "nodes": [100112, 100113],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.034 },
+        { "lat": 37.5, "lon": 127.03500000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 108,
+      "tags": { "highway": "footway" },
+      "nodes": [100113, 100114],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.03500000000001 },
+        { "lat": 37.5, "lon": 127.036 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 109,
+      "tags": { "highway": "footway" },
+      "nodes": [100114, 100115],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.036 },
+        { "lat": 37.5, "lon": 127.037 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 110,
+      "tags": { "highway": "footway" },
+      "nodes": [100115, 100116],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.037 },
+        { "lat": 37.5, "lon": 127.03800000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 111,
+      "tags": { "highway": "footway" },
+      "nodes": [100116, 100117],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.03800000000001 },
+        { "lat": 37.5, "lon": 127.039 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 112,
+      "tags": { "highway": "footway" },
+      "nodes": [100117, 100118],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.039 },
+        { "lat": 37.5, "lon": 127.04 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 113,
+      "tags": { "highway": "footway" },
+      "nodes": [100119, 100120],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.024 },
+        { "lat": 37.501000000000005, "lon": 127.025 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 114,
+      "tags": { "highway": "footway" },
+      "nodes": [100120, 100121],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.025 },
+        { "lat": 37.501000000000005, "lon": 127.026 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 115,
+      "tags": { "highway": "footway" },
+      "nodes": [100121, 100122],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.026 },
+        { "lat": 37.501000000000005, "lon": 127.027 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 116,
+      "tags": { "highway": "footway" },
+      "nodes": [100122, 100123],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.027 },
+        { "lat": 37.501000000000005, "lon": 127.028 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 117,
+      "tags": { "highway": "footway" },
+      "nodes": [100123, 100124],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.028 },
+        { "lat": 37.501000000000005, "lon": 127.029 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 118,
+      "tags": { "highway": "footway" },
+      "nodes": [100124, 100125],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.029 },
+        { "lat": 37.501000000000005, "lon": 127.03 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 119,
+      "tags": { "highway": "footway" },
+      "nodes": [100125, 100126],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.03 },
+        { "lat": 37.501000000000005, "lon": 127.031 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 120,
+      "tags": { "highway": "footway" },
+      "nodes": [100126, 100127],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.031 },
+        { "lat": 37.501000000000005, "lon": 127.03200000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 121,
+      "tags": { "highway": "footway" },
+      "nodes": [100127, 100128],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.03200000000001 },
+        { "lat": 37.501000000000005, "lon": 127.033 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 122,
+      "tags": { "highway": "footway" },
+      "nodes": [100128, 100129],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.033 },
+        { "lat": 37.501000000000005, "lon": 127.034 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 123,
+      "tags": { "highway": "footway" },
+      "nodes": [100129, 100130],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.034 },
+        { "lat": 37.501000000000005, "lon": 127.03500000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 124,
+      "tags": { "highway": "footway" },
+      "nodes": [100130, 100131],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.03500000000001 },
+        { "lat": 37.501000000000005, "lon": 127.036 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 125,
+      "tags": { "highway": "footway" },
+      "nodes": [100131, 100132],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.036 },
+        { "lat": 37.501000000000005, "lon": 127.037 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 126,
+      "tags": { "highway": "footway" },
+      "nodes": [100132, 100133],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.037 },
+        { "lat": 37.501000000000005, "lon": 127.03800000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 127,
+      "tags": { "highway": "footway" },
+      "nodes": [100133, 100134],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.03800000000001 },
+        { "lat": 37.501000000000005, "lon": 127.039 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 128,
+      "tags": { "highway": "footway" },
+      "nodes": [100134, 100135],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.039 },
+        { "lat": 37.501000000000005, "lon": 127.04 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 129,
+      "tags": { "highway": "footway" },
+      "nodes": [100136, 100137],
+      "geometry": [
+        { "lat": 37.502, "lon": 127.024 },
+        { "lat": 37.502, "lon": 127.025 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 130,
+      "tags": { "highway": "footway" },
+      "nodes": [100137, 100138],
+      "geometry": [
+        { "lat": 37.502, "lon": 127.025 },
+        { "lat": 37.502, "lon": 127.026 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 131,
+      "tags": { "highway": "footway" },
+      "nodes": [100138, 100139],
+      "geometry": [
+        { "lat": 37.502, "lon": 127.026 },
+        { "lat": 37.502, "lon": 127.027 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 132,
+      "tags": { "highway": "footway" },
+      "nodes": [100139, 100140],
+      "geometry": [
+        { "lat": 37.502, "lon": 127.027 },
+        { "lat": 37.502, "lon": 127.028 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 133,
+      "tags": { "highway": "footway" },
+      "nodes": [100140, 100141],
+      "geometry": [
+        { "lat": 37.502, "lon": 127.028 },
+        { "lat": 37.502, "lon": 127.029 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 134,
+      "tags": { "highway": "footway" },
+      "nodes": [100141, 100142],
+      "geometry": [
+        { "lat": 37.502, "lon": 127.029 },
+        { "lat": 37.502, "lon": 127.03 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 135,
+      "tags": { "highway": "footway" },
+      "nodes": [100142, 100143],
+      "geometry": [
+        { "lat": 37.502, "lon": 127.03 },
+        { "lat": 37.502, "lon": 127.031 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 136,
+      "tags": { "highway": "footway" },
+      "nodes": [100143, 100144],
+      "geometry": [
+        { "lat": 37.502, "lon": 127.031 },
+        { "lat": 37.502, "lon": 127.03200000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 137,
+      "tags": { "highway": "footway" },
+      "nodes": [100144, 100145],
+      "geometry": [
+        { "lat": 37.502, "lon": 127.03200000000001 },
+        { "lat": 37.502, "lon": 127.033 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 138,
+      "tags": { "highway": "footway" },
+      "nodes": [100145, 100146],
+      "geometry": [
+        { "lat": 37.502, "lon": 127.033 },
+        { "lat": 37.502, "lon": 127.034 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 139,
+      "tags": { "highway": "footway" },
+      "nodes": [100146, 100147],
+      "geometry": [
+        { "lat": 37.502, "lon": 127.034 },
+        { "lat": 37.502, "lon": 127.03500000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 140,
+      "tags": { "highway": "footway" },
+      "nodes": [100147, 100148],
+      "geometry": [
+        { "lat": 37.502, "lon": 127.03500000000001 },
+        { "lat": 37.502, "lon": 127.036 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 141,
+      "tags": { "highway": "footway" },
+      "nodes": [100148, 100149],
+      "geometry": [
+        { "lat": 37.502, "lon": 127.036 },
+        { "lat": 37.502, "lon": 127.037 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 142,
+      "tags": { "highway": "footway" },
+      "nodes": [100149, 100150],
+      "geometry": [
+        { "lat": 37.502, "lon": 127.037 },
+        { "lat": 37.502, "lon": 127.03800000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 143,
+      "tags": { "highway": "footway" },
+      "nodes": [100150, 100151],
+      "geometry": [
+        { "lat": 37.502, "lon": 127.03800000000001 },
+        { "lat": 37.502, "lon": 127.039 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 144,
+      "tags": { "highway": "footway" },
+      "nodes": [100151, 100152],
+      "geometry": [
+        { "lat": 37.502, "lon": 127.039 },
+        { "lat": 37.502, "lon": 127.04 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 145,
+      "tags": { "highway": "footway" },
+      "nodes": [100000, 100017],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.024 },
+        { "lat": 37.495, "lon": 127.024 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 146,
+      "tags": { "highway": "footway" },
+      "nodes": [100017, 100034],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.024 },
+        { "lat": 37.496, "lon": 127.024 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 147,
+      "tags": { "highway": "footway" },
+      "nodes": [100034, 100051],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.024 },
+        { "lat": 37.497, "lon": 127.024 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 148,
+      "tags": { "highway": "footway" },
+      "nodes": [100051, 100068],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.024 },
+        { "lat": 37.498000000000005, "lon": 127.024 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 149,
+      "tags": { "highway": "footway" },
+      "nodes": [100068, 100085],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.024 },
+        { "lat": 37.499, "lon": 127.024 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 150,
+      "tags": { "highway": "footway" },
+      "nodes": [100085, 100102],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.024 },
+        { "lat": 37.5, "lon": 127.024 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 151,
+      "tags": { "highway": "footway" },
+      "nodes": [100102, 100119],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.024 },
+        { "lat": 37.501000000000005, "lon": 127.024 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 152,
+      "tags": { "highway": "footway" },
+      "nodes": [100119, 100136],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.024 },
+        { "lat": 37.502, "lon": 127.024 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 153,
+      "tags": { "highway": "footway" },
+      "nodes": [100001, 100018],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.025 },
+        { "lat": 37.495, "lon": 127.025 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 154,
+      "tags": { "highway": "footway" },
+      "nodes": [100018, 100035],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.025 },
+        { "lat": 37.496, "lon": 127.025 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 155,
+      "tags": { "highway": "footway" },
+      "nodes": [100035, 100052],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.025 },
+        { "lat": 37.497, "lon": 127.025 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 156,
+      "tags": { "highway": "footway" },
+      "nodes": [100052, 100069],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.025 },
+        { "lat": 37.498000000000005, "lon": 127.025 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 157,
+      "tags": { "highway": "footway" },
+      "nodes": [100069, 100086],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.025 },
+        { "lat": 37.499, "lon": 127.025 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 158,
+      "tags": { "highway": "footway" },
+      "nodes": [100086, 100103],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.025 },
+        { "lat": 37.5, "lon": 127.025 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 159,
+      "tags": { "highway": "footway" },
+      "nodes": [100103, 100120],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.025 },
+        { "lat": 37.501000000000005, "lon": 127.025 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 160,
+      "tags": { "highway": "footway" },
+      "nodes": [100120, 100137],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.025 },
+        { "lat": 37.502, "lon": 127.025 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 161,
+      "tags": { "highway": "footway" },
+      "nodes": [100002, 100019],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.026 },
+        { "lat": 37.495, "lon": 127.026 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 162,
+      "tags": { "highway": "footway" },
+      "nodes": [100019, 100036],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.026 },
+        { "lat": 37.496, "lon": 127.026 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 163,
+      "tags": { "highway": "footway" },
+      "nodes": [100036, 100053],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.026 },
+        { "lat": 37.497, "lon": 127.026 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 164,
+      "tags": { "highway": "footway" },
+      "nodes": [100053, 100070],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.026 },
+        { "lat": 37.498000000000005, "lon": 127.026 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 165,
+      "tags": { "highway": "footway" },
+      "nodes": [100070, 100087],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.026 },
+        { "lat": 37.499, "lon": 127.026 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 166,
+      "tags": { "highway": "footway" },
+      "nodes": [100087, 100104],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.026 },
+        { "lat": 37.5, "lon": 127.026 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 167,
+      "tags": { "highway": "footway" },
+      "nodes": [100104, 100121],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.026 },
+        { "lat": 37.501000000000005, "lon": 127.026 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 168,
+      "tags": { "highway": "footway" },
+      "nodes": [100121, 100138],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.026 },
+        { "lat": 37.502, "lon": 127.026 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 169,
+      "tags": { "highway": "footway" },
+      "nodes": [100003, 100020],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.027 },
+        { "lat": 37.495, "lon": 127.027 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 170,
+      "tags": { "highway": "footway" },
+      "nodes": [100020, 100037],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.027 },
+        { "lat": 37.496, "lon": 127.027 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 171,
+      "tags": { "highway": "footway" },
+      "nodes": [100037, 100054],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.027 },
+        { "lat": 37.497, "lon": 127.027 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 172,
+      "tags": { "highway": "footway" },
+      "nodes": [100054, 100071],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.027 },
+        { "lat": 37.498000000000005, "lon": 127.027 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 173,
+      "tags": { "highway": "footway" },
+      "nodes": [100071, 100088],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.027 },
+        { "lat": 37.499, "lon": 127.027 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 174,
+      "tags": { "highway": "footway" },
+      "nodes": [100088, 100105],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.027 },
+        { "lat": 37.5, "lon": 127.027 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 175,
+      "tags": { "highway": "footway" },
+      "nodes": [100105, 100122],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.027 },
+        { "lat": 37.501000000000005, "lon": 127.027 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 176,
+      "tags": { "highway": "footway" },
+      "nodes": [100122, 100139],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.027 },
+        { "lat": 37.502, "lon": 127.027 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 177,
+      "tags": { "highway": "footway" },
+      "nodes": [100004, 100021],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.028 },
+        { "lat": 37.495, "lon": 127.028 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 178,
+      "tags": { "highway": "footway" },
+      "nodes": [100021, 100038],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.028 },
+        { "lat": 37.496, "lon": 127.028 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 179,
+      "tags": { "highway": "footway" },
+      "nodes": [100038, 100055],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.028 },
+        { "lat": 37.497, "lon": 127.028 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 180,
+      "tags": { "highway": "footway" },
+      "nodes": [100055, 100072],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.028 },
+        { "lat": 37.498000000000005, "lon": 127.028 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 181,
+      "tags": { "highway": "footway" },
+      "nodes": [100072, 100089],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.028 },
+        { "lat": 37.499, "lon": 127.028 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 182,
+      "tags": { "highway": "footway" },
+      "nodes": [100089, 100106],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.028 },
+        { "lat": 37.5, "lon": 127.028 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 183,
+      "tags": { "highway": "footway" },
+      "nodes": [100106, 100123],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.028 },
+        { "lat": 37.501000000000005, "lon": 127.028 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 184,
+      "tags": { "highway": "footway" },
+      "nodes": [100123, 100140],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.028 },
+        { "lat": 37.502, "lon": 127.028 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 185,
+      "tags": { "highway": "footway" },
+      "nodes": [100005, 100022],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.029 },
+        { "lat": 37.495, "lon": 127.029 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 186,
+      "tags": { "highway": "footway" },
+      "nodes": [100022, 100039],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.029 },
+        { "lat": 37.496, "lon": 127.029 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 187,
+      "tags": { "highway": "footway" },
+      "nodes": [100039, 100056],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.029 },
+        { "lat": 37.497, "lon": 127.029 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 188,
+      "tags": { "highway": "footway" },
+      "nodes": [100056, 100073],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.029 },
+        { "lat": 37.498000000000005, "lon": 127.029 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 189,
+      "tags": { "highway": "footway" },
+      "nodes": [100073, 100090],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.029 },
+        { "lat": 37.499, "lon": 127.029 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 190,
+      "tags": { "highway": "footway" },
+      "nodes": [100090, 100107],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.029 },
+        { "lat": 37.5, "lon": 127.029 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 191,
+      "tags": { "highway": "footway" },
+      "nodes": [100107, 100124],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.029 },
+        { "lat": 37.501000000000005, "lon": 127.029 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 192,
+      "tags": { "highway": "footway" },
+      "nodes": [100124, 100141],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.029 },
+        { "lat": 37.502, "lon": 127.029 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 193,
+      "tags": { "highway": "footway" },
+      "nodes": [100006, 100023],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.03 },
+        { "lat": 37.495, "lon": 127.03 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 194,
+      "tags": { "highway": "footway" },
+      "nodes": [100023, 100040],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.03 },
+        { "lat": 37.496, "lon": 127.03 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 195,
+      "tags": { "highway": "footway" },
+      "nodes": [100040, 100057],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.03 },
+        { "lat": 37.497, "lon": 127.03 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 196,
+      "tags": { "highway": "footway" },
+      "nodes": [100057, 100074],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.03 },
+        { "lat": 37.498000000000005, "lon": 127.03 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 197,
+      "tags": { "highway": "footway" },
+      "nodes": [100074, 100091],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.03 },
+        { "lat": 37.499, "lon": 127.03 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 198,
+      "tags": { "highway": "footway" },
+      "nodes": [100091, 100108],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.03 },
+        { "lat": 37.5, "lon": 127.03 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 199,
+      "tags": { "highway": "footway" },
+      "nodes": [100108, 100125],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.03 },
+        { "lat": 37.501000000000005, "lon": 127.03 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 200,
+      "tags": { "highway": "footway" },
+      "nodes": [100125, 100142],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.03 },
+        { "lat": 37.502, "lon": 127.03 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 201,
+      "tags": { "highway": "footway" },
+      "nodes": [100007, 100024],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.031 },
+        { "lat": 37.495, "lon": 127.031 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 202,
+      "tags": { "highway": "footway" },
+      "nodes": [100024, 100041],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.031 },
+        { "lat": 37.496, "lon": 127.031 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 203,
+      "tags": { "highway": "footway" },
+      "nodes": [100041, 100058],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.031 },
+        { "lat": 37.497, "lon": 127.031 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 204,
+      "tags": { "highway": "footway" },
+      "nodes": [100058, 100075],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.031 },
+        { "lat": 37.498000000000005, "lon": 127.031 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 205,
+      "tags": { "highway": "footway" },
+      "nodes": [100075, 100092],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.031 },
+        { "lat": 37.499, "lon": 127.031 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 206,
+      "tags": { "highway": "footway" },
+      "nodes": [100092, 100109],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.031 },
+        { "lat": 37.5, "lon": 127.031 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 207,
+      "tags": { "highway": "footway" },
+      "nodes": [100109, 100126],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.031 },
+        { "lat": 37.501000000000005, "lon": 127.031 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 208,
+      "tags": { "highway": "footway" },
+      "nodes": [100126, 100143],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.031 },
+        { "lat": 37.502, "lon": 127.031 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 209,
+      "tags": { "highway": "footway" },
+      "nodes": [100008, 100025],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.03200000000001 },
+        { "lat": 37.495, "lon": 127.03200000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 210,
+      "tags": { "highway": "footway" },
+      "nodes": [100025, 100042],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.03200000000001 },
+        { "lat": 37.496, "lon": 127.03200000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 211,
+      "tags": { "highway": "footway" },
+      "nodes": [100042, 100059],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.03200000000001 },
+        { "lat": 37.497, "lon": 127.03200000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 212,
+      "tags": { "highway": "footway" },
+      "nodes": [100059, 100076],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.03200000000001 },
+        { "lat": 37.498000000000005, "lon": 127.03200000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 213,
+      "tags": { "highway": "footway" },
+      "nodes": [100076, 100093],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.03200000000001 },
+        { "lat": 37.499, "lon": 127.03200000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 214,
+      "tags": { "highway": "footway" },
+      "nodes": [100093, 100110],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.03200000000001 },
+        { "lat": 37.5, "lon": 127.03200000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 215,
+      "tags": { "highway": "footway" },
+      "nodes": [100110, 100127],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.03200000000001 },
+        { "lat": 37.501000000000005, "lon": 127.03200000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 216,
+      "tags": { "highway": "footway" },
+      "nodes": [100127, 100144],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.03200000000001 },
+        { "lat": 37.502, "lon": 127.03200000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 217,
+      "tags": { "highway": "footway" },
+      "nodes": [100009, 100026],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.033 },
+        { "lat": 37.495, "lon": 127.033 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 218,
+      "tags": { "highway": "footway" },
+      "nodes": [100026, 100043],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.033 },
+        { "lat": 37.496, "lon": 127.033 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 219,
+      "tags": { "highway": "footway" },
+      "nodes": [100043, 100060],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.033 },
+        { "lat": 37.497, "lon": 127.033 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 220,
+      "tags": { "highway": "footway" },
+      "nodes": [100060, 100077],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.033 },
+        { "lat": 37.498000000000005, "lon": 127.033 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 221,
+      "tags": { "highway": "footway" },
+      "nodes": [100077, 100094],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.033 },
+        { "lat": 37.499, "lon": 127.033 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 222,
+      "tags": { "highway": "footway" },
+      "nodes": [100094, 100111],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.033 },
+        { "lat": 37.5, "lon": 127.033 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 223,
+      "tags": { "highway": "footway" },
+      "nodes": [100111, 100128],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.033 },
+        { "lat": 37.501000000000005, "lon": 127.033 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 224,
+      "tags": { "highway": "footway" },
+      "nodes": [100128, 100145],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.033 },
+        { "lat": 37.502, "lon": 127.033 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 225,
+      "tags": { "highway": "footway" },
+      "nodes": [100010, 100027],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.034 },
+        { "lat": 37.495, "lon": 127.034 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 226,
+      "tags": { "highway": "footway" },
+      "nodes": [100027, 100044],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.034 },
+        { "lat": 37.496, "lon": 127.034 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 227,
+      "tags": { "highway": "footway" },
+      "nodes": [100044, 100061],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.034 },
+        { "lat": 37.497, "lon": 127.034 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 228,
+      "tags": { "highway": "footway" },
+      "nodes": [100061, 100078],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.034 },
+        { "lat": 37.498000000000005, "lon": 127.034 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 229,
+      "tags": { "highway": "footway" },
+      "nodes": [100078, 100095],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.034 },
+        { "lat": 37.499, "lon": 127.034 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 230,
+      "tags": { "highway": "footway" },
+      "nodes": [100095, 100112],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.034 },
+        { "lat": 37.5, "lon": 127.034 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 231,
+      "tags": { "highway": "footway" },
+      "nodes": [100112, 100129],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.034 },
+        { "lat": 37.501000000000005, "lon": 127.034 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 232,
+      "tags": { "highway": "footway" },
+      "nodes": [100129, 100146],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.034 },
+        { "lat": 37.502, "lon": 127.034 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 233,
+      "tags": { "highway": "footway" },
+      "nodes": [100011, 100028],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.03500000000001 },
+        { "lat": 37.495, "lon": 127.03500000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 234,
+      "tags": { "highway": "footway" },
+      "nodes": [100028, 100045],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.03500000000001 },
+        { "lat": 37.496, "lon": 127.03500000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 235,
+      "tags": { "highway": "footway" },
+      "nodes": [100045, 100062],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.03500000000001 },
+        { "lat": 37.497, "lon": 127.03500000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 236,
+      "tags": { "highway": "footway" },
+      "nodes": [100062, 100079],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.03500000000001 },
+        { "lat": 37.498000000000005, "lon": 127.03500000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 237,
+      "tags": { "highway": "footway" },
+      "nodes": [100079, 100096],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.03500000000001 },
+        { "lat": 37.499, "lon": 127.03500000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 238,
+      "tags": { "highway": "footway" },
+      "nodes": [100096, 100113],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.03500000000001 },
+        { "lat": 37.5, "lon": 127.03500000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 239,
+      "tags": { "highway": "footway" },
+      "nodes": [100113, 100130],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.03500000000001 },
+        { "lat": 37.501000000000005, "lon": 127.03500000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 240,
+      "tags": { "highway": "footway" },
+      "nodes": [100130, 100147],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.03500000000001 },
+        { "lat": 37.502, "lon": 127.03500000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 241,
+      "tags": { "highway": "footway" },
+      "nodes": [100012, 100029],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.036 },
+        { "lat": 37.495, "lon": 127.036 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 242,
+      "tags": { "highway": "footway" },
+      "nodes": [100029, 100046],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.036 },
+        { "lat": 37.496, "lon": 127.036 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 243,
+      "tags": { "highway": "footway" },
+      "nodes": [100046, 100063],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.036 },
+        { "lat": 37.497, "lon": 127.036 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 244,
+      "tags": { "highway": "footway" },
+      "nodes": [100063, 100080],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.036 },
+        { "lat": 37.498000000000005, "lon": 127.036 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 245,
+      "tags": { "highway": "footway" },
+      "nodes": [100080, 100097],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.036 },
+        { "lat": 37.499, "lon": 127.036 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 246,
+      "tags": { "highway": "footway" },
+      "nodes": [100097, 100114],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.036 },
+        { "lat": 37.5, "lon": 127.036 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 247,
+      "tags": { "highway": "footway" },
+      "nodes": [100114, 100131],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.036 },
+        { "lat": 37.501000000000005, "lon": 127.036 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 248,
+      "tags": { "highway": "footway" },
+      "nodes": [100131, 100148],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.036 },
+        { "lat": 37.502, "lon": 127.036 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 249,
+      "tags": { "highway": "footway" },
+      "nodes": [100013, 100030],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.037 },
+        { "lat": 37.495, "lon": 127.037 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 250,
+      "tags": { "highway": "footway" },
+      "nodes": [100030, 100047],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.037 },
+        { "lat": 37.496, "lon": 127.037 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 251,
+      "tags": { "highway": "footway" },
+      "nodes": [100047, 100064],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.037 },
+        { "lat": 37.497, "lon": 127.037 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 252,
+      "tags": { "highway": "footway" },
+      "nodes": [100064, 100081],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.037 },
+        { "lat": 37.498000000000005, "lon": 127.037 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 253,
+      "tags": { "highway": "footway" },
+      "nodes": [100081, 100098],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.037 },
+        { "lat": 37.499, "lon": 127.037 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 254,
+      "tags": { "highway": "footway" },
+      "nodes": [100098, 100115],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.037 },
+        { "lat": 37.5, "lon": 127.037 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 255,
+      "tags": { "highway": "footway" },
+      "nodes": [100115, 100132],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.037 },
+        { "lat": 37.501000000000005, "lon": 127.037 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 256,
+      "tags": { "highway": "footway" },
+      "nodes": [100132, 100149],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.037 },
+        { "lat": 37.502, "lon": 127.037 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 257,
+      "tags": { "highway": "footway" },
+      "nodes": [100014, 100031],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.03800000000001 },
+        { "lat": 37.495, "lon": 127.03800000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 258,
+      "tags": { "highway": "footway" },
+      "nodes": [100031, 100048],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.03800000000001 },
+        { "lat": 37.496, "lon": 127.03800000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 259,
+      "tags": { "highway": "footway" },
+      "nodes": [100048, 100065],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.03800000000001 },
+        { "lat": 37.497, "lon": 127.03800000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 260,
+      "tags": { "highway": "footway" },
+      "nodes": [100065, 100082],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.03800000000001 },
+        { "lat": 37.498000000000005, "lon": 127.03800000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 261,
+      "tags": { "highway": "footway" },
+      "nodes": [100082, 100099],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.03800000000001 },
+        { "lat": 37.499, "lon": 127.03800000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 262,
+      "tags": { "highway": "footway" },
+      "nodes": [100099, 100116],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.03800000000001 },
+        { "lat": 37.5, "lon": 127.03800000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 263,
+      "tags": { "highway": "footway" },
+      "nodes": [100116, 100133],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.03800000000001 },
+        { "lat": 37.501000000000005, "lon": 127.03800000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 264,
+      "tags": { "highway": "footway" },
+      "nodes": [100133, 100150],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.03800000000001 },
+        { "lat": 37.502, "lon": 127.03800000000001 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 265,
+      "tags": { "highway": "footway" },
+      "nodes": [100015, 100032],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.039 },
+        { "lat": 37.495, "lon": 127.039 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 266,
+      "tags": { "highway": "footway" },
+      "nodes": [100032, 100049],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.039 },
+        { "lat": 37.496, "lon": 127.039 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 267,
+      "tags": { "highway": "footway" },
+      "nodes": [100049, 100066],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.039 },
+        { "lat": 37.497, "lon": 127.039 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 268,
+      "tags": { "highway": "footway" },
+      "nodes": [100066, 100083],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.039 },
+        { "lat": 37.498000000000005, "lon": 127.039 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 269,
+      "tags": { "highway": "footway" },
+      "nodes": [100083, 100100],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.039 },
+        { "lat": 37.499, "lon": 127.039 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 270,
+      "tags": { "highway": "footway" },
+      "nodes": [100100, 100117],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.039 },
+        { "lat": 37.5, "lon": 127.039 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 271,
+      "tags": { "highway": "footway" },
+      "nodes": [100117, 100134],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.039 },
+        { "lat": 37.501000000000005, "lon": 127.039 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 272,
+      "tags": { "highway": "footway" },
+      "nodes": [100134, 100151],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.039 },
+        { "lat": 37.502, "lon": 127.039 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 273,
+      "tags": { "highway": "footway" },
+      "nodes": [100016, 100033],
+      "geometry": [
+        { "lat": 37.494, "lon": 127.04 },
+        { "lat": 37.495, "lon": 127.04 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 274,
+      "tags": { "highway": "footway" },
+      "nodes": [100033, 100050],
+      "geometry": [
+        { "lat": 37.495, "lon": 127.04 },
+        { "lat": 37.496, "lon": 127.04 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 275,
+      "tags": { "highway": "footway" },
+      "nodes": [100050, 100067],
+      "geometry": [
+        { "lat": 37.496, "lon": 127.04 },
+        { "lat": 37.497, "lon": 127.04 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 276,
+      "tags": { "highway": "footway" },
+      "nodes": [100067, 100084],
+      "geometry": [
+        { "lat": 37.497, "lon": 127.04 },
+        { "lat": 37.498000000000005, "lon": 127.04 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 277,
+      "tags": { "highway": "footway" },
+      "nodes": [100084, 100101],
+      "geometry": [
+        { "lat": 37.498000000000005, "lon": 127.04 },
+        { "lat": 37.499, "lon": 127.04 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 278,
+      "tags": { "highway": "footway" },
+      "nodes": [100101, 100118],
+      "geometry": [
+        { "lat": 37.499, "lon": 127.04 },
+        { "lat": 37.5, "lon": 127.04 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 279,
+      "tags": { "highway": "footway" },
+      "nodes": [100118, 100135],
+      "geometry": [
+        { "lat": 37.5, "lon": 127.04 },
+        { "lat": 37.501000000000005, "lon": 127.04 }
+      ]
+    },
+    {
+      "type": "way",
+      "id": 280,
+      "tags": { "highway": "footway" },
+      "nodes": [100135, 100152],
+      "geometry": [
+        { "lat": 37.501000000000005, "lon": 127.04 },
+        { "lat": 37.502, "lon": 127.04 }
+      ]
+    }
+  ]
+}
