@@ -526,7 +526,7 @@ describe("App", () => {
     expect(
       await screen.findByRole("heading", { name: "상세 경로" }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("도보 경로 안내")).not.toBeVisible();
+    expect(screen.queryByLabelText("도보 경로 안내")).not.toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", { name: "상세 경로 2단계 보기" }),
     );
@@ -567,6 +567,20 @@ describe("App", () => {
 
     expect(
       await screen.findByText("3km 이내 경로만 지원해요"),
+    ).toBeInTheDocument();
+  });
+
+  it("explains when route data exceeds the WebView work budget", async () => {
+    mockedCalculate.mockRejectedValue(new Error("ROUTE_DATA_TOO_COMPLEX"));
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
+
+    expect(
+      await screen.findByText("이 지역의 경로 데이터가 너무 복잡해요"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("더 가까운 장소를 선택해 다시 시도해 주세요."),
     ).toBeInTheDocument();
   });
 

@@ -181,6 +181,14 @@
 - `scripts/`: 서울 OSM 데이터 전처리
 - `public/data/`: 전처리한 서울 보행로·건물 데이터
 
+### WebView 자원 보호
+
+- compact schema 2 루팅 타일은 요소·좌표 수를 객체 확장 전에 검증한다. legacy schema 1 루트 타일은 받지 않는다.
+- 그래프 노드·간선·차수·연결 요소, 그늘 후보, 경로 세그먼트, 상세 길안내에 명시적 상한을 둔다.
+- Leaflet 경로는 casing·connector·shade·sunny multi-polyline 최대 4개로 묶고, 상세 길안내 DOM은 사용자가 펼칠 때만 만든다.
+- 상한은 2026-07 서울 데이터 812개 타일의 실측값을 기준으로 한다. 데이터 갱신 때 실측값, 상한, 경계값 테스트를 함께 재검토한다.
+- 세부 근거와 남은 위험은 [`docs/security/pr1-webview-resource-hardening.md`](./docs/security/pr1-webview-resource-hardening.md)에 기록한다.
+
 ## 실행과 검증
 
 프로젝트 루트에서 실행한다.
@@ -208,24 +216,28 @@ npm run data:seoul
 
 이 디렉터리는 `main` 브랜치를 기본으로 쓰는 Git 저장소이며, 비공개 GitHub 저장소 `coooow0/shade-route`를 `origin`으로 연결한다. 빌드 산출물, 커버리지, `node_modules`, 앱인토스 `.ait` 파일은 커밋하지 않는다.
 
-2026년 7월 13일 마지막 전체 검증 결과:
+2026년 7월 15일 마지막 전체 검증 결과:
 
-- 테스트 150개 통과
-- 문장 커버리지 87.05%, 분기 커버리지 83.17%, 함수 커버리지 92.07%, 라인 커버리지 91.32%
+- 테스트 170개 통과
+- 문장 커버리지 87.47%, 분기 커버리지 82.86%, 함수 커버리지 92.76%, 라인 커버리지 91.53%
 - 타입 검사와 ESLint 통과
 - 앱인토스 `.ait` 빌드 통과
 - `shade-route.ait` 약 22MB
+- minified 웹 JavaScript 약 1.47MB로 500kB 권장 크기 초과 경고가 있다. 실기기 초기 로드 측정 후 코드 분할을 후속 검토한다.
+
+2026년 7월 13일 실기기 화면 검증 결과:
+
 - 390px 결과 화면에서 상단 요약·가로 경로 카드·지도가 한 화면 흐름으로 보이는 것을 확인했다.
 - 320px 화면에서 버튼과 카드가 가로로 넘치지 않는 것을 확인했다.
 
 ### 알려진 개발도구 의존성 보안 경고
 
-2026년 7월 13일 `npm audit --omit=dev`에서 31건(치명 1, 높음 12, 보통 2, 낮음 16)이 보고됐다. 핵심 경로는 `@apps-in-toss/web-framework@2.10.5` → `@granite-js/mpack@1.0.20` → `@fastify/middie@8.3.0`·`fastify@4.14.0`이며, `find-my-way@7.7.0`과 `fast-uri@2.4.0` 경고도 이 개발도구 체인에 속한다.
+2026년 7월 15일 `npm audit --omit=dev`에서 31건(치명 1, 높음 12, 보통 2, 낮음 16)이 보고됐다. 핵심 경로는 `@apps-in-toss/web-framework@2.10.5` 하위의 Granite·Fastify·React Native CLI 및 빌드 도구 체인이며, `@fastify/middie`, `fastify`, `find-my-way`, `fast-uri`, `@babel/core`, `esbuild`, `fast-xml-parser`, `ip`가 포함된다.
 
 - 정적 `dist`와 `.ait` 산출물에는 Fastify, Middie, find-my-way, fast-uri가 포함되지 않는다.
 - 개발 서버는 `localhost`에만 열며 외부 네트워크에 공개하지 않는다.
 - 공식 최신 `@apps-in-toss/web-framework@2.10.6`도 같은 Granite 1.0.20 의존성을 고정하므로 현재 안전한 상위 업데이트가 없다.
-- `npm audit fix --force`나 Fastify 계열의 임의 major override는 앱인토스 빌드 호환성을 깨뜨릴 수 있어 적용하지 않는다.
+- 일부 전이 의존성은 `npm audit fix`를 제안하지만, 자동 수정·`--force`·Fastify 계열의 임의 major override는 앱인토스 빌드 호환성을 전체 검증하는 별도 의존성 PR 없이 적용하지 않는다.
 - 앱인토스/Granite가 수정 버전을 배포하면 공식 호환 버전으로 갱신하고 전체 테스트와 `.ait` 빌드를 다시 검증한다.
 
 ## 챌린지와 출시

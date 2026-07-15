@@ -4,6 +4,7 @@ import {
   type DirectionKind,
   type WalkingDirection,
 } from "../domain/routing/directions";
+import { ROUTE_RESOURCE_LIMITS } from "../domain/routing/resourceLimits";
 import type { Place, RouteResult } from "../domain/routing/types";
 
 interface RouteDirectionsProps {
@@ -66,6 +67,8 @@ export default function RouteDirections({
   const listId = `${headingId}-list`;
   const [expanded, setExpanded] = useState(false);
   const directions = buildWalkingDirections(route.segments, goal.name);
+  const directionsTooComplex =
+    directions.length > ROUTE_RESOURCE_LIMITS.directionSteps;
 
   useEffect(() => {
     setExpanded(false);
@@ -99,15 +102,18 @@ export default function RouteDirections({
           <p className="directions-empty" role="status">
             상세 경로 안내를 만들 수 없어요.
           </p>
-        ) : (
-          <ol id={listId} aria-label="도보 경로 안내" hidden={!expanded}>
-            {directions.map((step) => (
+        ) : expanded && directionsTooComplex ? (
+          <p id={listId} className="directions-empty" role="status">
+            상세 경로가 너무 복잡해 표시하지 못했어요. 지도 경로를 확인해
+            주세요.
+          </p>
+        ) : expanded ? (
+          <ol id={listId} aria-label="도보 경로 안내">
+            {directions.map((step, index) => (
               <li
                 key={step.id}
                 className={`direction-step ${step.kind}`}
-                aria-posinset={
-                  directions.findIndex((item) => item.id === step.id) + 1
-                }
+                aria-posinset={index + 1}
                 aria-setsize={directions.length}
               >
                 <span className="direction-icon" aria-hidden="true">
@@ -130,7 +136,7 @@ export default function RouteDirections({
               </li>
             ))}
           </ol>
-        )}
+        ) : null}
         {directions.length > 0 && (
           <button
             className="directions-toggle"

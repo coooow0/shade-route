@@ -158,4 +158,25 @@ describe("mountLeafletRouteMap", () => {
     controller.destroy();
     expect(leaflet.map.remove).toHaveBeenCalledOnce();
   });
+
+  it("groups route segments into a bounded number of Leaflet layers", () => {
+    vi.stubGlobal("navigator", { userAgent: "iPhone" });
+    const segments = Array.from({ length: 300 }, (_, index) => ({
+      from: { lat: 37.5, lon: 127.028 + index * 0.000001 },
+      to: { lat: 37.5, lon: 127.028 + (index + 1) * 0.000001 },
+      shadeRatio: index % 3 === 0 ? 0.8 : 0.2,
+      covered: false,
+      connector: index % 3 === 2,
+    }));
+
+    mountLeafletRouteMap({
+      element: document.createElement("div"),
+      route: { ...route, pathKey: "many-segments", segments },
+      start,
+      goal,
+      onTileError: vi.fn(),
+    });
+
+    expect(leaflet.api.polyline).toHaveBeenCalledTimes(4);
+  });
 });

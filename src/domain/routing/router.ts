@@ -1,4 +1,5 @@
 import { distance } from "./geo";
+import { ROUTE_RESOURCE_LIMITS } from "./resourceLimits";
 import type { ShadeService } from "./shade";
 import type { Edge, Graph, XY } from "./types";
 
@@ -171,6 +172,9 @@ export function summarize(
   graph: Graph,
   shade: ShadeService,
 ): RouteSummary {
+  if (path.steps.length > ROUTE_RESOURCE_LIMITS.routeSegments) {
+    throw new Error("ROUTE_DATA_TOO_COMPLEX");
+  }
   let timeSec = 0;
   let lengthM = 0;
   let sunSec = 0;

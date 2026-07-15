@@ -123,7 +123,12 @@ function App() {
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [routeError, setRouteError] = useState<
-    "generic" | "near-goal" | "off-network" | "too-long" | "outside-seoul"
+    | "generic"
+    | "near-goal"
+    | "off-network"
+    | "too-long"
+    | "outside-seoul"
+    | "complex-data"
   >("generic");
   const latestRequest = useRef(0);
   const latestLocationRequest = useRef(0);
@@ -217,10 +222,12 @@ function App() {
             ? "too-long"
             : errorMessage === "OUTSIDE_SEOUL"
               ? "outside-seoul"
-              : errorMessage === "SNAP_FAILED" ||
-                  errorMessage === "ROUTE_NOT_FOUND"
-                ? "off-network"
-                : "generic",
+              : errorMessage === "ROUTE_DATA_TOO_COMPLEX"
+                ? "complex-data"
+                : errorMessage === "SNAP_FAILED" ||
+                    errorMessage === "ROUTE_NOT_FOUND"
+                  ? "off-network"
+                  : "generic",
       );
       setStatus("error");
     }
@@ -584,7 +591,9 @@ function App() {
                     ? "서울 안의 장소를 선택해 주세요"
                     : routeError === "off-network"
                       ? "가까운 지원 보행로를 찾지 못했어요"
-                      : "경로를 불러오지 못했어요"}
+                      : routeError === "complex-data"
+                        ? "이 지역의 경로 데이터가 너무 복잡해요"
+                        : "경로를 불러오지 못했어요"}
             </strong>
             <p>
               {routeError === "near-goal"
@@ -595,7 +604,9 @@ function App() {
                     ? "현재는 서울 지역만 이용할 수 있어요."
                     : routeError === "off-network"
                       ? "가까운 장소를 선택하거나 현재 위치를 다시 확인해 주세요."
-                      : "데이터 연결을 확인하고 다시 시도해 주세요."}
+                      : routeError === "complex-data"
+                        ? "더 가까운 장소를 선택해 다시 시도해 주세요."
+                        : "데이터 연결을 확인하고 다시 시도해 주세요."}
             </p>
           </div>
           {routeError === "generic" && (

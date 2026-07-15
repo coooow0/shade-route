@@ -1,4 +1,5 @@
 import { distance, nearestOnSegment, type Projection } from "./geo";
+import { ROUTE_RESOURCE_LIMITS } from "./resourceLimits";
 import type { Edge, Graph, OverpassData, XY } from "./types";
 
 const WALKABLE = new Set([
@@ -66,17 +67,43 @@ function isCovered(tags: Readonly<Record<string, string | undefined>> = {}) {
 function makeAdjacency(
   edges: readonly Edge[],
 ): ReadonlyMap<number, readonly number[]> {
-  const adjacency = new Map<number, readonly number[]>();
-  for (const edge of edges) {
-    adjacency.set(edge.a, [...(adjacency.get(edge.a) ?? []), edge.id]);
-    adjacency.set(edge.b, [...(adjacency.get(edge.b) ?? []), edge.id]);
+  interface AdjacencyLink {
+    readonly edgeId: number;
+    readonly next: AdjacencyLink | null;
+    readonly size: number;
   }
-  return adjacency;
+
+  const heads = new Map<number, AdjacencyLink>();
+  for (const edge of edges) {
+    for (const nodeId of [edge.a, edge.b]) {
+      const previous = heads.get(nodeId) ?? null;
+      const size = (previous?.size ?? 0) + 1;
+      if (size > ROUTE_RESOURCE_LIMITS.graphNodeDegree) {
+        throw new Error("ROUTE_DATA_TOO_COMPLEX");
+      }
+      heads.set(nodeId, { edgeId: edge.id, next: previous, size });
+    }
+  }
+
+  return new Map(
+    [...heads].map(([nodeId, head]) => {
+      const edgeIds = Array<number>(head.size);
+      let current: AdjacencyLink | null = head;
+      let index = head.size - 1;
+      while (current !== null) {
+        edgeIds[index] = current.edgeId;
+        current = current.next;
+        index--;
+      }
+      return [nodeId, edgeIds] as const;
+    }),
+  );
 }
 
 export function buildGraph(data: OverpassData, projection: Projection): Graph {
   const nodes = new Map<number, XY>();
   const edges: Edge[] = [];
+  const degrees = new Map<number, number>();
   let skippedWays = 0;
 
   for (const element of data.elements) {
@@ -92,14 +119,32 @@ export function buildGraph(data: OverpassData, projection: Projection): Graph {
       const geometryB = element.geometry[index + 1];
       if (a === undefined || b === undefined || !geometryA || !geometryB)
         continue;
+      if (a === b) continue;
       const pointA =
         nodes.get(a) ?? projection.toXY(geometryA.lat, geometryA.lon);
       const pointB =
         nodes.get(b) ?? projection.toXY(geometryB.lat, geometryB.lon);
+      const addedNodes = Number(!nodes.has(a)) + Number(!nodes.has(b));
+      if (nodes.size + addedNodes > ROUTE_RESOURCE_LIMITS.graphNodes) {
+        throw new Error("ROUTE_DATA_TOO_COMPLEX");
+      }
       nodes.set(a, pointA);
       nodes.set(b, pointB);
       const length = distance(pointA, pointB);
       if (length <= 0) continue;
+      if (edges.length >= ROUTE_RESOURCE_LIMITS.graphEdges) {
+        throw new Error("ROUTE_DATA_TOO_COMPLEX");
+      }
+      const degreeA = (degrees.get(a) ?? 0) + 1;
+      const degreeB = (degrees.get(b) ?? 0) + 1;
+      if (
+        degreeA > ROUTE_RESOURCE_LIMITS.graphNodeDegree ||
+        degreeB > ROUTE_RESOURCE_LIMITS.graphNodeDegree
+      ) {
+        throw new Error("ROUTE_DATA_TOO_COMPLEX");
+      }
+      degrees.set(a, degreeA);
+      degrees.set(b, degreeB);
       edges.push({
         id: edges.length,
         a,
@@ -120,9 +165,14 @@ export function largestComponent(graph: Graph): Graph {
   if (graph.nodes.size === 0)
     return { ...graph, componentCount: 0, droppedNodes: 0 };
   const seen = new Set<number>();
-  const components: number[][] = [];
+  let componentCount = 0;
+  let biggest: readonly number[] = [];
   for (const start of graph.nodes.keys()) {
     if (seen.has(start)) continue;
+    componentCount++;
+    if (componentCount > ROUTE_RESOURCE_LIMITS.graphComponents) {
+      throw new Error("ROUTE_DATA_TOO_COMPLEX");
+    }
     const component: number[] = [];
     const stack = [start];
     seen.add(start);
@@ -140,12 +190,8 @@ export function largestComponent(graph: Graph): Graph {
         }
       }
     }
-    components.push(component);
+    if (component.length > biggest.length) biggest = component;
   }
-  const biggest = components.reduce(
-    (best, current) => (current.length > best.length ? current : best),
-    [],
-  );
   const keep = new Set(biggest);
   const edges = graph.edges
     .filter((edge) => keep.has(edge.a) && keep.has(edge.b))
@@ -156,7 +202,7 @@ export function largestComponent(graph: Graph): Graph {
     nodes,
     edges,
     adj: makeAdjacency(edges),
-    componentCount: components.length,
+    componentCount,
     droppedNodes: graph.nodes.size - nodes.size,
   };
 }
@@ -164,10 +210,16 @@ export function largestComponent(graph: Graph): Graph {
 export function connectedGraphs(graph: Graph): readonly Graph[] {
   const seen = new Set<number>();
   const components: Graph[] = [];
+  let componentCount = 0;
 
   for (const start of graph.nodes.keys()) {
     if (seen.has(start)) continue;
+    componentCount++;
+    if (componentCount > ROUTE_RESOURCE_LIMITS.graphComponents) {
+      throw new Error("ROUTE_DATA_TOO_COMPLEX");
+    }
     const nodeIds = new Set<number>([start]);
+    const edgeIds = new Set<number>();
     const stack = [start];
     seen.add(start);
     while (stack.length > 0) {
@@ -176,6 +228,7 @@ export function connectedGraphs(graph: Graph): readonly Graph[] {
       for (const edgeIndex of graph.adj.get(nodeId) ?? []) {
         const edge = graph.edges[edgeIndex];
         if (!edge) continue;
+        edgeIds.add(edgeIndex);
         const other = edge.a === nodeId ? edge.b : edge.a;
         if (seen.has(other)) continue;
         seen.add(other);
@@ -183,9 +236,12 @@ export function connectedGraphs(graph: Graph): readonly Graph[] {
         stack.push(other);
       }
     }
-    const edges = graph.edges
-      .filter((edge) => nodeIds.has(edge.a) && nodeIds.has(edge.b))
-      .map((edge, id) => ({ ...edge, id }));
+    const edges = [...edgeIds]
+      .sort((a, b) => a - b)
+      .flatMap((edgeIndex, id) => {
+        const edge = graph.edges[edgeIndex];
+        return edge ? [{ ...edge, id }] : [];
+      });
     if (edges.length === 0) continue;
     components.push({
       nodes: new Map(

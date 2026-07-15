@@ -38,6 +38,13 @@ function segmentStyle(segment: RouteSegment): L.PathOptions {
   };
 }
 
+function routeLine(segment: RouteSegment): L.LatLngTuple[] {
+  return [
+    [segment.from.lat, segment.from.lon],
+    [segment.to.lat, segment.to.lon],
+  ];
+}
+
 function addMarker(
   map: L.Map,
   place: Place,
@@ -99,38 +106,37 @@ export function mountLeafletRouteMap({
     bounds.extend([segment.to.lat, segment.to.lon]);
   });
 
-  route.segments.forEach((segment) => {
-    L.polyline(
-      [
-        [segment.from.lat, segment.from.lon],
-        [segment.to.lat, segment.to.lon],
-      ],
-      {
-        color: "#ffffff",
-        weight: 11,
-        opacity: 0.92,
-        lineCap: "round",
-        lineJoin: "round",
-        className: "route-casing",
-      },
-    ).addTo(map);
-  });
+  L.polyline(route.segments.map(routeLine), {
+    color: "#ffffff",
+    weight: 11,
+    opacity: 0.92,
+    lineCap: "round",
+    lineJoin: "round",
+    className: "route-casing",
+  }).addTo(map);
 
-  route.segments.forEach((segment) => {
-    L.polyline(
-      [
-        [segment.from.lat, segment.from.lon],
-        [segment.to.lat, segment.to.lon],
-      ],
-      {
-        ...segmentStyle(segment),
-        weight: 7,
-        opacity: 0.96,
-        lineCap: "round",
-        lineJoin: "round",
-      },
-    ).addTo(map);
-  });
+  const groups = [
+    route.segments.filter((segment) => Boolean(segment.connector)),
+    route.segments.filter(
+      (segment) =>
+        !segment.connector && (segment.covered || segment.shadeRatio >= 0.5),
+    ),
+    route.segments.filter(
+      (segment) =>
+        !segment.connector && !segment.covered && segment.shadeRatio < 0.5,
+    ),
+  ];
+  for (const segments of groups) {
+    const representative = segments[0];
+    if (!representative) continue;
+    L.polyline(segments.map(routeLine), {
+      ...segmentStyle(representative),
+      weight: 7,
+      opacity: 0.96,
+      lineCap: "round",
+      lineJoin: "round",
+    }).addTo(map);
+  }
 
   addMarker(map, start, "출발", "#3182f6");
   addMarker(map, goal, "도착", "#ff7a45");

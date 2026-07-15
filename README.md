@@ -39,6 +39,12 @@ npm run data:seoul
 - 위치는 화면에 표시하는 동안만 메모리에서 쓰고 앱·서버·로컬 저장소에 저장하지 않아요.
 - 지도에 보이는 주변 영역은 OpenStreetMap 타일 서버에 전달될 수 있어요.
 
+## 보안·자원 보호
+
+- 루팅 타일을 큰 객체로 확장하기 전에 요소·좌표 수를 검증하고, 그래프·그늘·경로·상세 길안내의 작업량을 제한해 WebView 자원 고갈을 막아요.
+- Leaflet 경로는 세그먼트별 레이어 대신 최대 4개 multi-polyline으로 묶고, 상세 길안내는 펼칠 때만 DOM을 만들어요.
+- 세부 공격 경로, 상한 근거, 호환성, 테스트는 [PR 1 보안 보고서](./docs/security/pr1-webview-resource-hardening.md)와 [HTML 요약](./docs/security/pr1-webview-resource-hardening.html)에 정리했어요.
+
 ## 배포하기
 
 - 앱인토스 배포 API 키는 [앱인토스 콘솔](https://apps-in-toss.toss.im/) > 워크스페이스 > API 키 > 콘솔 API 키 에서 발급받을 수 있어요.

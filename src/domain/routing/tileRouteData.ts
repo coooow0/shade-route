@@ -1,5 +1,10 @@
 import { fetchJsonWithLimit } from "../data/fetchJson";
-import { isOverpassData } from "./loadRouteData";
+import {
+  assertRouteDataBudget,
+  assertTileDataBudget,
+  ROUTE_RESOURCE_LIMITS,
+  type RouteDataWork,
+} from "./resourceLimits";
 import type {
   CorridorData,
   LatLng,
@@ -51,8 +56,6 @@ interface CompactRouteDataTile {
   readonly b: readonly unknown[];
 }
 
-const MAX_COMPACT_ELEMENTS = 10_000;
-const MAX_COORDINATE_VALUES = 2_000;
 const MICRO_DEGREES = 1_000_000;
 
 function isFiniteNumber(value: unknown): value is number {
@@ -100,28 +103,15 @@ function isTileManifest(value: unknown): value is TileManifest {
   );
 }
 
-function isLegacyRouteDataTile(
-  value: unknown,
-  expectedId: string,
-): value is RouteDataTile {
-  if (typeof value !== "object" || value === null) return false;
-  const tile = value as Partial<RouteDataTile>;
-  return (
-    tile.schema === 1 &&
-    tile.id === expectedId &&
-    isOverpassData(tile.ways) &&
-    isOverpassData(tile.buildings)
-  );
-}
-
 function isCompactCoordinates(
   value: unknown,
   minimumPoints: number,
+  maximumPoints: number,
 ): value is readonly number[] {
   return (
     Array.isArray(value) &&
     value.length >= minimumPoints * 2 &&
-    value.length <= MAX_COORDINATE_VALUES &&
+    value.length <= maximumPoints * 2 &&
     value.length % 2 === 0 &&
     value.every(
       (coordinate, index) =>
@@ -146,17 +136,20 @@ function isCompactWay(value: unknown) {
     flags <= 7 &&
     Array.isArray(nodes) &&
     nodes.length >= 2 &&
-    nodes.length <= MAX_COORDINATE_VALUES / 2 &&
+    nodes.length <= ROUTE_RESOURCE_LIMITS.wayPointsPerElement &&
     nodes.every((node) => Number.isSafeInteger(node) && node > 0) &&
-    isCompactCoordinates(coordinates, 2) &&
+    isCompactCoordinates(
+      coordinates,
+      2,
+      ROUTE_RESOURCE_LIMITS.wayPointsPerElement,
+    ) &&
     coordinates.length === nodes.length * 2
   );
 }
 
 function isOptionalPositiveNumber(value: unknown, maximum: number) {
   return (
-    value === null ||
-    (isFiniteNumber(value) && value > 0 && value <= maximum)
+    value === null || (isFiniteNumber(value) && value > 0 && value <= maximum)
   );
 }
 
@@ -168,7 +161,11 @@ function isCompactBuilding(value: unknown) {
     id > 0 &&
     isOptionalPositiveNumber(height, 1_000) &&
     isOptionalPositiveNumber(levels, 300) &&
-    isCompactCoordinates(coordinates, 3)
+    isCompactCoordinates(
+      coordinates,
+      3,
+      ROUTE_RESOURCE_LIMITS.buildingPointsPerElement,
+    )
   );
 }
 
@@ -182,12 +179,48 @@ function isCompactRouteDataTile(
     tile.schema === 2 &&
     tile.id === expectedId &&
     Array.isArray(tile.w) &&
-    tile.w.length <= MAX_COMPACT_ELEMENTS &&
+    tile.w.length <= ROUTE_RESOURCE_LIMITS.tileWays &&
     tile.w.every(isCompactWay) &&
     Array.isArray(tile.b) &&
-    tile.b.length <= MAX_COMPACT_ELEMENTS &&
+    tile.b.length <= ROUTE_RESOURCE_LIMITS.tileBuildings &&
     tile.b.every(isCompactBuilding)
   );
+}
+
+function compactTileWork(tile: CompactRouteDataTile): RouteDataWork {
+  return {
+    ways: tile.w.length,
+    buildings: tile.b.length,
+    wayPoints: tile.w.reduce<number>((total, value) => {
+      const [, , nodes] = value as readonly [
+        unknown,
+        unknown,
+        readonly unknown[],
+      ];
+      return total + nodes.length;
+    }, 0),
+    buildingPoints: tile.b.reduce<number>((total, value) => {
+      const [, , , coordinates] = value as readonly [
+        unknown,
+        unknown,
+        unknown,
+        readonly unknown[],
+      ];
+      return total + coordinates.length / 2;
+    }, 0),
+  };
+}
+
+function addRouteDataWork(
+  total: RouteDataWork,
+  current: RouteDataWork,
+): RouteDataWork {
+  return {
+    ways: total.ways + current.ways,
+    buildings: total.buildings + current.buildings,
+    wayPoints: total.wayPoints + current.wayPoints,
+    buildingPoints: total.buildingPoints + current.buildingPoints,
+  };
 }
 
 function expandCoordinates(coordinates: readonly number[]) {
@@ -246,13 +279,10 @@ function expandCompactTile(tile: CompactRouteDataTile): RouteDataTile {
 function decodeRouteDataTile(
   value: unknown,
   expectedId: string,
-): RouteDataTile | null {
-  if (isLegacyRouteDataTile(value, expectedId)) return value;
+): CompactRouteDataTile | null {
   if (!isCompactRouteDataTile(value, expectedId)) return null;
-  const expanded = expandCompactTile(value);
-  return isOverpassData(expanded.ways) && isOverpassData(expanded.buildings)
-    ? expanded
-    : null;
+  assertTileDataBudget(compactTileWork(value));
+  return value;
 }
 
 function intersects(a: GeoBounds, b: GeoBounds) {
@@ -331,7 +361,7 @@ export async function loadTiledRouteData(
   const declaredTotal = selected.reduce((total, tile) => total + tile.bytes, 0);
   if (declaredTotal > MAX_ROUTE_BYTES) throw new Error("ROUTE_TOO_LARGE");
 
-  const tiles = await loadInBatches(selected, async (entry) => {
+  const compactTiles = await loadInBatches(selected, async (entry) => {
     const value = await fetchJsonWithLimit({
       fetcher,
       url: `${base}${DATA_DIRECTORY}/tiles/${entry.id}.json`,
@@ -345,6 +375,15 @@ export async function loadTiledRouteData(
     }
     return tile;
   });
+
+  const routeWork = compactTiles.map(compactTileWork).reduce(addRouteDataWork, {
+    ways: 0,
+    buildings: 0,
+    wayPoints: 0,
+    buildingPoints: 0,
+  });
+  assertRouteDataBudget(routeWork);
+  const tiles = compactTiles.map(expandCompactTile);
 
   return {
     ways: mergeElements(tiles.map((tile) => tile.ways)),

@@ -4,6 +4,7 @@ import {
   selectManifestTiles,
   type TileManifest,
 } from "./tileRouteData";
+import { ROUTE_RESOURCE_LIMITS } from "./resourceLimits";
 
 const manifest: TileManifest = {
   schema: 1,
@@ -46,6 +47,32 @@ const building = (id: number, lon: number) => ({
   ],
 });
 
+const compactWay = (id: number, west: number, east: number) => [
+  id,
+  0,
+  [id * 10, id * 10 + 1],
+  [
+    37_495_000,
+    Math.round(west * 1_000_000),
+    37_495_000,
+    Math.round(east * 1_000_000),
+  ],
+];
+
+const compactBuilding = (id: number, lon: number) => [
+  id,
+  12,
+  null,
+  [
+    37_494_000,
+    Math.round(lon * 1_000_000),
+    37_494_200,
+    Math.round(lon * 1_000_000),
+    37_494_200,
+    Math.round((lon + 0.0002) * 1_000_000),
+  ],
+];
+
 function response(value: unknown) {
   return new Response(JSON.stringify(value));
 }
@@ -73,22 +100,20 @@ describe("tiled route data", () => {
       if (url.endsWith("15-27943-12699.json")) {
         return Promise.resolve(
           response({
-            schema: 1,
+            schema: 2,
             id: "15-27943-12699",
-            ways: { elements: [way(1, 127.025, 127.03)] },
-            buildings: { elements: [building(10, 127.027)] },
+            w: [compactWay(1, 127.025, 127.03)],
+            b: [compactBuilding(10, 127.027)],
           }),
         );
       }
       if (url.endsWith("15-27944-12699.json")) {
         return Promise.resolve(
           response({
-            schema: 1,
+            schema: 2,
             id: "15-27944-12699",
-            ways: {
-              elements: [way(1, 127.025, 127.03), way(2, 127.03, 127.035)],
-            },
-            buildings: { elements: [building(11, 127.033)] },
+            w: [compactWay(1, 127.025, 127.03), compactWay(2, 127.03, 127.035)],
+            b: [compactBuilding(11, 127.033)],
           }),
         );
       }
@@ -190,6 +215,77 @@ describe("tiled route data", () => {
         0,
       ),
     ).rejects.toThrow("INVALID_TILE_DATA");
+  });
+
+  it("rejects legacy schema-1 tiles instead of expanding object-heavy data", async () => {
+    const compactManifest: TileManifest = {
+      ...manifest,
+      tiles: [manifest.tiles[0]],
+    };
+    const fetcher = vi.fn<typeof fetch>((input) =>
+      Promise.resolve(
+        String(input).endsWith("manifest.json")
+          ? response(compactManifest)
+          : response({
+              schema: 1,
+              id: "15-27943-12699",
+              ways: { elements: [way(1, 127.025, 127.026)] },
+              buildings: { elements: [building(1, 127.025)] },
+            }),
+      ),
+    );
+
+    await expect(
+      loadTiledRouteData(
+        { lat: 37.495, lon: 127.025 },
+        { lat: 37.495, lon: 127.026 },
+        fetcher,
+        "/",
+        0,
+      ),
+    ).rejects.toThrow("INVALID_TILE_DATA");
+  });
+
+  it("rejects decoded building points beyond the per-tile budget", async () => {
+    const pointsPerBuilding = ROUTE_RESOURCE_LIMITS.buildingPointsPerElement;
+    const buildingCount =
+      Math.floor(ROUTE_RESOURCE_LIMITS.tileBuildingPoints / pointsPerBuilding) +
+      1;
+    const coordinates = Array.from(
+      { length: pointsPerBuilding },
+      (_, index) => [37_494_000 + index, 127_025_000 + index],
+    ).flat();
+    const oversizedManifest: TileManifest = {
+      ...manifest,
+      tiles: [{ ...manifest.tiles[0], bytes: 1_000_000 }],
+    };
+    const fetcher = vi.fn<typeof fetch>((input) =>
+      Promise.resolve(
+        String(input).endsWith("manifest.json")
+          ? response(oversizedManifest)
+          : response({
+              schema: 2,
+              id: "15-27943-12699",
+              w: [],
+              b: Array.from({ length: buildingCount }, (_, index) => [
+                index + 1,
+                12,
+                null,
+                coordinates,
+              ]),
+            }),
+      ),
+    );
+
+    await expect(
+      loadTiledRouteData(
+        { lat: 37.495, lon: 127.025 },
+        { lat: 37.495, lon: 127.026 },
+        fetcher,
+        "/",
+        0,
+      ),
+    ).rejects.toThrow("ROUTE_DATA_TOO_COMPLEX");
   });
 
   it("rejects unsafe tile ids before building request paths", async () => {

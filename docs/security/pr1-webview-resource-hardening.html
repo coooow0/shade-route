@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:"
+    />
+    <title>보안 개선 PR 1 — WebView 자원 고갈 방어</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #172033;
+        --muted: #667085;
+        --line: #dfe5ee;
+        --paper: #fff;
+        --wash: #f5f7fb;
+        --blue: #1769e0;
+        --blue-soft: #eaf2ff;
+        --amber: #8b5a00;
+        --amber-soft: #fff7df;
+        --green: #126b46;
+        --green-soft: #eaf8f1;
+        --red: #b42318;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: var(--wash);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.65;
+      }
+      a {
+        color: var(--blue);
+      }
+      .shell {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+      header {
+        padding: 64px 0 42px;
+        background: linear-gradient(135deg, #12233f, #174e99);
+        color: white;
+      }
+      header p {
+        max-width: 760px;
+        color: #dce9ff;
+      }
+      h1 {
+        margin: 8px 0 14px;
+        font-size: clamp(32px, 5vw, 52px);
+        line-height: 1.13;
+      }
+      h2 {
+        margin: 0 0 18px;
+        font-size: 27px;
+      }
+      h3 {
+        margin: 0 0 10px;
+        font-size: 19px;
+      }
+      .eyebrow {
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 700;
+        font-size: 13px;
+      }
+      .meta,
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .tag {
+        display: inline-flex;
+        padding: 5px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.14);
+        color: white;
+        font-size: 13px;
+      }
+      nav {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.94);
+        backdrop-filter: blur(12px);
+      }
+      nav .shell {
+        display: flex;
+        gap: 20px;
+        overflow-x: auto;
+        padding: 13px 0;
+      }
+      nav a {
+        color: var(--ink);
+        text-decoration: none;
+        white-space: nowrap;
+        font-size: 14px;
+        font-weight: 650;
+      }
+      main {
+        padding: 34px 0 70px;
+      }
+      section {
+        margin: 0 0 24px;
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--paper);
+        box-shadow: 0 10px 30px rgba(23, 32, 51, 0.045);
+      }
+      .summary-grid,
+      .finding-grid,
+      .metric-grid {
+        display: grid;
+        gap: 14px;
+      }
+      .summary-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .metric-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      .finding-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 15px;
+        padding: 17px;
+      }
+      .card p,
+      .card ul {
+        margin-bottom: 0;
+      }
+      .number {
+        font-size: 28px;
+        font-weight: 780;
+        color: var(--blue);
+      }
+      .label {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .severity {
+        display: inline-flex;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-weight: 750;
+        font-size: 12px;
+        background: var(--amber-soft);
+        color: var(--amber);
+      }
+      .severity.low {
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+      .ok {
+        border-left: 4px solid var(--green);
+        background: var(--green-soft);
+      }
+      .note {
+        border-left: 4px solid #d9a100;
+        background: var(--amber-soft);
+      }
+      .scroll {
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 690px;
+      }
+      th,
+      td {
+        padding: 12px 13px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        color: var(--muted);
+        font-size: 13px;
+        background: #fafbfc;
+      }
+      td.num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      code {
+        padding: 2px 5px;
+        border-radius: 5px;
+        background: #edf1f7;
+        font-size: 0.9em;
+      }
+      footer {
+        padding: 0 0 44px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      @media (max-width: 820px) {
+        .summary-grid,
+        .metric-grid,
+        .finding-grid {
+          grid-template-columns: 1fr;
+        }
+        section {
+          padding: 21px;
+        }
+        header {
+          padding-top: 46px;
+        }
+      }
+      @media print {
+        body {
+          background: white;
+        }
+        nav {
+          display: none;
+        }
+        section {
+          break-inside: avoid;
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="shell">
+        <div class="eyebrow">shade-route security remediation</div>
+        <h1>보안 개선 PR 1<br />WebView 자원 고갈 방어</h1>
+        <p>
+          복잡한 경로 데이터가 CPU·메모리·DOM·Leaflet 레이어를 무제한으로 키우는
+          경로를 차단하고, 현재 서울 데이터와의 호환성을 검증한 내용입니다.
+        </p>
+        <div class="meta">
+          <span class="tag">2026-07-15</span>
+          <span class="tag">8 findings</span>
+          <span class="tag">812 tiles checked</span>
+          <span class="tag">No secrets included</span>
+        </div>
+      </div>
+    </header>
+    <nav aria-label="문서 목차">
+      <div class="shell">
+        <a href="#outcome">결론</a>
+        <a href="#findings">발견 사항</a>
+        <a href="#limits">상한·호환성</a>
+        <a href="#performance">성능</a>
+        <a href="#tests">테스트</a>
+        <a href="#remaining">남은 위험</a>
+      </div>
+    </nav>
+    <main class="shell">
+      <section id="outcome">
+        <h2>결론</h2>
+        <div class="summary-grid">
+          <div class="card">
+            <div class="number">8</div>
+            <div class="label">자원 고갈 경로 방어</div>
+          </div>
+          <div class="card">
+            <div class="number">4</div>
+            <div class="label">300 구간 Leaflet polyline 호출</div>
+          </div>
+          <div class="card">
+            <div class="number">13.9×</div>
+            <div class="label">서울 경계 2,000 샘플 일회 측정</div>
+          </div>
+        </div>
+        <div class="card ok" style="margin-top: 14px">
+          <strong>정상 데이터 호환</strong>
+          <p>
+            812개 루트 타일은 모두 compact schema 2이며, 관측한 단일 타일·36타일
+            경로 영역의 최댓값은 새 상한 안에 있습니다.
+          </p>
+        </div>
+      </section>
+
+      <section id="findings">
+        <h2>처리한 발견 사항</h2>
+        <div class="finding-grid">
+          <article class="card">
+            <span class="severity">Medium</span>
+            <h3>DSC-003 · 고차수 인접 배열</h3>
+            <p>
+              <strong>경로:</strong> 오염된 타일의 star 그래프 → 배열 spread
+              반복 → WebView CPU·메모리 고갈.
+            </p>
+            <p>
+              <strong>수정:</strong> 선형 인접 구조, 노드 차수 64 상한. 정상
+              실측 최대는 11.
+            </p>
+          </article>
+          <article class="card">
+            <span class="severity">Medium</span>
+            <h3>DSC-004 · 연결 요소 재스캔</h3>
+            <p>
+              <strong>경로:</strong> 수많은 분리 way → 요소마다 전체 간선 필터 →
+              <code>O(C×E)</code>.
+            </p>
+            <p>
+              <strong>수정:</strong> BFS 중 간선 ID를 수집하고 512개 요소를
+              상한으로 설정.
+            </p>
+          </article>
+          <article class="card">
+            <span class="severity">Medium</span>
+            <h3>DSC-005 · Leaflet 레이어</h3>
+            <p>
+              <strong>경로:</strong> N개 세그먼트 → casing·color
+              <code>2N</code> 레이어 생성.
+            </p>
+            <p>
+              <strong>수정:</strong> multi-polyline을
+              casing·connector·shade·sunny로 묶어 최대 4회만 생성, 경로 2,000
+              세그먼트 상한.
+            </p>
+          </article>
+          <article class="card">
+            <span class="severity low">Low</span>
+            <h3>DSC-006 · 숨겨진 길안내 DOM</h3>
+            <p>
+              <strong>경로:</strong> 접혀도 전체 <code>&lt;li&gt;</code> mount +
+              항목별 <code>findIndex</code>.
+            </p>
+            <p>
+              <strong>수정:</strong> 펼칠 때만 mount, index 직접 사용, 400단계
+              초과 표시 거부.
+            </p>
+          </article>
+          <article class="card">
+            <span class="severity">Medium</span>
+            <h3>DSC-011 · compact 좌표 확장</h3>
+            <p>
+              <strong>경로:</strong> 긴 숫자 배열 → 대량의
+              <code>{lat, lon}</code> 객체 확장.
+            </p>
+            <p>
+              <strong>수정:</strong> way·building·tile·route 단위 예산을 compact
+              상태에서 먼저 검증.
+            </p>
+          </article>
+          <article class="card">
+            <span class="severity low">Low</span>
+            <h3>DSC-012 · legacy schema 1</h3>
+            <p>
+              <strong>경로:</strong> 확장된 legacy 객체가 compact 예산 검사를
+              우회.
+            </p>
+            <p>
+              <strong>수정:</strong> 루트 타일은 schema 2만 허용. 현재 타일
+              812개 모두 호환.
+            </p>
+          </article>
+          <article class="card">
+            <span class="severity">Medium</span>
+            <h3>DSC-031 · 겹친 그늘 후보</h3>
+            <p>
+              <strong>경로:</strong> 한 지점에 많은 hull을 겹침 → 샘플마다 모든
+              다각형 검사.
+            </p>
+            <p><strong>수정:</strong> 지점당 RBush 후보 512개 상한.</p>
+          </article>
+          <article class="card">
+            <span class="severity low">Low</span>
+            <h3>DSC-037 · 서울 경계 전체 스캔</h3>
+            <p>
+              <strong>경로:</strong> 장소 후보마다 약 1,495개 경계 간선을 반복
+              스캔.
+            </p>
+            <p>
+              <strong>수정:</strong> bounding box + 128개 위도 버킷. 2,304개
+              격자 좌표가 전체 스캔 참조와 동일.
+            </p>
+          </article>
+        </div>
+        <div class="card note" style="margin-top: 14px">
+          <strong>심각도 보정</strong>
+          <p>
+            자원 고갈 영향은 재현되지만, 핵심 데이터는 same-origin 정적
+            아티팩트입니다. 외부 공격자는 배포·캐시·CDN·생성 파이프라인 오염이
+            필요하므로 Critical/High로 분류하지 않았습니다.
+          </p>
+        </div>
+      </section>
+
+      <section id="limits">
+        <h2>정상 데이터 호환성과 상한</h2>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>항목</th>
+                <th>관측 최댓값</th>
+                <th>PR 1 상한</th>
+                <th>여유</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>타일 way</td>
+                <td class="num">1,008</td>
+                <td class="num">1,600</td>
+                <td class="num">58.7%</td>
+              </tr>
+              <tr>
+                <td>타일 building</td>
+                <td class="num">2,216</td>
+                <td class="num">3,500</td>
+                <td class="num">57.9%</td>
+              </tr>
+              <tr>
+                <td>타일 way point</td>
+                <td class="num">4,919</td>
+                <td class="num">8,000</td>
+                <td class="num">62.6%</td>
+              </tr>
+              <tr>
+                <td>타일 building point</td>
+                <td class="num">16,968</td>
+                <td class="num">25,000</td>
+                <td class="num">47.3%</td>
+              </tr>
+              <tr>
+                <td>36타일 way raw 합</td>
+                <td class="num">14,551</td>
+                <td class="num">20,000</td>
+                <td class="num">37.4%</td>
+              </tr>
+              <tr>
+                <td>36타일 building raw 합</td>
+                <td class="num">28,394</td>
+                <td class="num">45,000</td>
+                <td class="num">58.5%</td>
+              </tr>
+              <tr>
+                <td>36타일 way point raw 합</td>
+                <td class="num">89,748</td>
+                <td class="num">110,000</td>
+                <td class="num">22.6%</td>
+              </tr>
+              <tr>
+                <td>36타일 building point raw 합</td>
+                <td class="num">193,667</td>
+                <td class="num">300,000</td>
+                <td class="num">54.9%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          요소별 상한은 way 512포인트, building 256포인트입니다. 그래프는
+          node·edge 각 100,000, 노드 차수 64, 연결 요소 512를 상한으로 삼습니다.
+        </p>
+      </section>
+
+      <section id="performance">
+        <h2>성능·자원 개선</h2>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>구간</th>
+                <th>수정 전</th>
+                <th>수정 후</th>
+                <th>검증</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Leaflet</td>
+                <td>300 구간 → 600 호출</td>
+                <td>300 구간 → 4 호출</td>
+                <td>mock 호출 수</td>
+              </tr>
+              <tr>
+                <td>접힌 길안내</td>
+                <td>전체 DOM + <code>findIndex</code></td>
+                <td>DOM 0개 + index 직접 사용</td>
+                <td>접힘·펼침·40 401단계</td>
+              </tr>
+              <tr>
+                <td>서울 경계</td>
+                <td>2,000 좌표 21.77ms</td>
+                <td>2,000 좌표 1.57ms</td>
+                <td>동일 환경 일회 측정</td>
+              </tr>
+              <tr>
+                <td>그래프 요소</td>
+                <td>요소마다 전체 간선 필터</td>
+                <td>탐색 중 간선 ID 수집</td>
+                <td>513개 요소 거부</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="label">
+          시간 측정은 환경·JIT에 따라 달라질 수 있어 CI 합격 기준으로 쓰지
+          않습니다. 알고리즘, 호출 수, 자원 상한을 회귀 기준으로 삼습니다.
+        </p>
+      </section>
+
+      <section id="tests">
+        <h2>오류 처리와 테스트</h2>
+        <div class="card ok">
+          <strong>사용자 안내</strong>
+          <p>
+            <code>ROUTE_DATA_TOO_COMPLEX</code>를 내부 상세 노출 없이 “이 지역의
+            경로 데이터가 너무 복잡해요”로 바꿔 표시합니다. 결정적 실패에 무한
+            재시도 버튼은 두지 않습니다.
+          </p>
+        </div>
+        <p>
+          핵심 보안 회귀 검증: 9개 파일, 64개 테스트 통과. 전체 품질 게이트:
+          29개 파일, 170개 테스트 통과. 커버리지는 문장 87.47%, 분기 82.86%,
+          함수 92.76%, 라인 91.53%입니다. TypeScript·ESLint·앱인토스 AIT 빌드도
+          모두 통과했습니다.
+        </p>
+        <div class="card note">
+          <strong>후속 성능 항목</strong>
+          <p>
+            minified 웹 JavaScript가 약 1.47MB로 500kB 권장 크기를 넘는 빌드
+            경고가 남아 있습니다. 실기기 초기 로드 측정 후 코드 분할을 검토할
+            항목입니다.
+          </p>
+        </div>
+        <p>
+          <a href="pr1-webview-resource-hardening.md"
+            >세부 공격 경로·오탐 가능성·파일 위치·테스트 보기</a
+          >
+        </p>
+        <p class="label">
+          별도 보안 리뷰에서 추가 발견 사항은 없었습니다. 실제 토스 WebView의
+          색상 겹침 순서와 저사양 기기 메모리 QA는 남아 있습니다.
+        </p>
+      </section>
+
+      <section id="remaining">
+        <h2>남은 위험과 다음 PR</h2>
+        <ul>
+          <li>
+            상한은 2026-07 데이터 기준입니다. 데이터 갱신 때
+            최댓값·상한·테스트를 함께 재검토해야 합니다.
+          </li>
+          <li>
+            OSM 보행 제한·계단·사유지·통행 조건 정확도는 PR 2의 범위입니다.
+          </li>
+          <li>
+            정적 아티팩트 무결성·Web Worker 분리·취소 가능한 작업은 PR 3의
+            범위입니다.
+          </li>
+          <li>
+            <code>npm audit --omit=dev</code>의 개발·빌드 도구 체인 경고 31건은
+            임의 override 대신 앱인토스 호환성을 검증하는 별도 의존성 PR로
+            다룹니다.
+          </li>
+        </ul>
+      </section>
+    </main>
+    <footer class="shell">
+      <p>이 문서에는 실제 키·토큰·개인정보 값을 포함하지 않습니다.</p>
+    </footer>
+  </body>
+</html>

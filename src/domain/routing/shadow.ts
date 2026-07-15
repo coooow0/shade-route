@@ -1,5 +1,6 @@
 import RBush from "rbush";
 import { convexHull, pointInPolygon } from "./geo";
+import { ROUTE_RESOURCE_LIMITS } from "./resourceLimits";
 import { shadowLength, type SunState } from "./sun";
 import type { Building, XY } from "./types";
 
@@ -43,7 +44,14 @@ export function buildShadowIndex(
 }
 
 export function isShaded(point: XY, index: ShadowIndex): boolean {
-  return index
-    .search({ minX: point[0], minY: point[1], maxX: point[0], maxY: point[1] })
-    .some((item) => pointInPolygon(point, item.hull));
+  const candidates = index.search({
+    minX: point[0],
+    minY: point[1],
+    maxX: point[0],
+    maxY: point[1],
+  });
+  if (candidates.length > ROUTE_RESOURCE_LIMITS.shadowCandidatesPerPoint) {
+    throw new Error("ROUTE_DATA_TOO_COMPLEX");
+  }
+  return candidates.some((item) => pointInPolygon(point, item.hull));
 }

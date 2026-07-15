@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import RouteDirections from "./RouteDirections";
+import { ROUTE_RESOURCE_LIMITS } from "../domain/routing/resourceLimits";
 import type { Place, RouteResult } from "../domain/routing/types";
 
 const goal: Place = { id: "goal", name: "역삼역", lat: 37.501, lon: 127.036 };
@@ -47,8 +48,8 @@ describe("RouteDirections", () => {
     expect(
       screen.getByRole("heading", { name: "상세 경로" }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("도보 경로 안내")).not.toBeVisible();
-    expect(screen.queryByText("역삼역에 도착")).not.toBeVisible();
+    expect(screen.queryByLabelText("도보 경로 안내")).not.toBeInTheDocument();
+    expect(screen.queryByText("역삼역에 도착")).not.toBeInTheDocument();
 
     fireEvent.click(
       screen.getByRole("button", { name: "상세 경로 3단계 보기" }),
@@ -102,11 +103,47 @@ describe("RouteDirections", () => {
     );
 
     const expand = screen.getByRole("button", { name: "상세 경로 8단계 보기" });
-    expect(screen.getByLabelText("도보 경로 안내")).not.toBeVisible();
+    expect(screen.queryByLabelText("도보 경로 안내")).not.toBeInTheDocument();
     fireEvent.click(expand);
     expect(screen.getAllByRole("listitem")).toHaveLength(8);
     expect(
       screen.getByRole("button", { name: "상세 경로 접기" }),
     ).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("refuses to mount an excessive direction list", () => {
+    let lat = 37;
+    let lon = 127;
+    const segments = Array.from(
+      { length: ROUTE_RESOURCE_LIMITS.directionSteps },
+      (_, index) => {
+        const from = { lat, lon };
+        if (index % 2 === 0) lat += 0.0001;
+        else lon += 0.0001;
+        return {
+          from,
+          to: { lat, lon },
+          shadeRatio: 0.5,
+          covered: false,
+        };
+      },
+    );
+
+    render(
+      <RouteDirections
+        route={{ ...route, pathKey: "excessive-guide", segments }}
+        requestedAt="2026-07-11T08:00:00.000Z"
+        goal={goal}
+      />,
+    );
+
+    expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+    fireEvent.click(
+      screen.getByRole("button", { name: "상세 경로 401단계 보기" }),
+    );
+    expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+    expect(
+      screen.getByText(/상세 경로가 너무 복잡해 표시하지 못했어요/),
+    ).toBeInTheDocument();
   });
 });
