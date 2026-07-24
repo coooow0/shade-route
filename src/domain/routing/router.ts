@@ -1,5 +1,6 @@
 import { distance } from "./geo";
 import { ROUTE_RESOURCE_LIMITS } from "./resourceLimits";
+import { FALLBACK_ROAD_MULTIPLIER } from "./safetyPolicy";
 import type { ShadeService } from "./shade";
 import type { Edge, Graph, XY } from "./types";
 
@@ -107,7 +108,7 @@ export function astar(
   goalId: number,
   lambda: number,
   shade: ShadeService,
-  fallbackRoadMultiplier = 1.5,
+  fallbackRoadMultiplier = FALLBACK_ROAD_MULTIPLIER,
 ): Path | null {
   const goal = graph.nodes.get(goalId);
   if (!goal || !graph.nodes.has(startId)) return null;
@@ -131,6 +132,12 @@ export function astar(
     for (const edgeIndex of graph.adj.get(current.id) ?? []) {
       const edge = graph.edges[edgeIndex];
       if (!edge) continue;
+      if (
+        (edge.walkDirection === "forward" && current.id !== edge.a) ||
+        (edge.walkDirection === "backward" && current.id !== edge.b)
+      ) {
+        continue;
+      }
       const neighbor = edge.a === current.id ? edge.b : edge.a;
       if (closed.has(neighbor)) continue;
       const walkTime = edgeWalkTime(edge);

@@ -1,19 +1,36 @@
 import { createReadStream } from "node:fs";
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   coordinateToTile,
   formatPlaceAddress,
+  isBlockedWalkingNode,
   isFallbackRoad,
+  isSupportedWalkingTags,
   isWalkableTags,
   limitPlacesByKind,
   normalizePlaceName,
   placeKindFromTags,
   pointInMultiPolygon,
   tileBounds,
+  walkDirectionFromTags,
 } from "./seoul-compiler-core.mjs";
+import {
+  artifactEntry,
+  releaseIdFor,
+  sha256Hex,
+  verifySeoulArtifacts,
+} from "./artifact-integrity.mjs";
+import {
+  boundaryCoordinates,
+  publicBoundaryPayload,
+  runtimeBoundaryModulePayload,
+  verifyPublicBoundaryArtifact,
+  verifyRuntimeBoundaryArtifact,
+} from "./seoul-boundary-artifacts.mjs";
 
 const require = createRequire(import.meta.url);
 const parseOSM = require("osm-pbf-parser");
@@ -34,6 +51,11 @@ const outputDirectory = join(
   dirname(targetOutputDirectory),
   `.${basename(targetOutputDirectory)}.staging`,
 );
+const integrityModulePath = resolve(
+  root,
+  "src/data/seoulArtifactIntegrity.mjs",
+);
+const runtimeBoundaryModulePath = resolve(root, "src/data/seoulBoundary.ts");
 
 const ZOOM = 15;
 const BBOX_MARGIN = 0.015;
@@ -44,13 +66,8 @@ const MAX_TOTAL_TILE_BYTES = 70_000_000;
 const MAX_PLACES = 50_000;
 const MAX_PLACE_TEXT_LENGTH = 120;
 const MAX_PLACE_BYTES = 12_000_000;
+const MAX_POLICY_ENTRIES = 20_000;
 const MICRO_DEGREES = 1_000_000;
-
-function boundaryCoordinates(boundary) {
-  if (boundary.type === "MultiPolygon") return boundary.coordinates;
-  if (boundary.type === "Polygon") return [boundary.coordinates];
-  throw new Error("Seoul boundary must be a Polygon or MultiPolygon");
-}
 
 function coordinatesBounds(coordinates) {
   const points = coordinates.flat(3);
@@ -188,7 +205,8 @@ function dedupePlaces(places) {
         ? `station:${normalizePlaceName(place.name)}`
         : `${normalizePlaceName(place.name)}:${place.lat.toFixed(4)}:${place.lon.toFixed(4)}`;
     const existing = deduped.get(key);
-    if (!existing || place.address && !existing.address) deduped.set(key, place);
+    if (!existing || (place.address && !existing.address))
+      deduped.set(key, place);
   }
   return [...deduped.values()].sort((a, b) =>
     a.name.localeCompare(b.name, "ko"),
@@ -198,8 +216,14 @@ function dedupePlaces(places) {
 const boundary = JSON.parse(await readFile(boundaryPath, "utf8"));
 await rm(outputDirectory, { recursive: true, force: true });
 const seoul = boundaryCoordinates(boundary);
+const runtimeBoundaryPayload = runtimeBoundaryModulePayload(boundary).payload;
 const bounds = coordinatesBounds(seoul);
 const nodes = new Map();
+const blockedNodeCandidates = new Set();
+const blockedNodeIds = new Set();
+const excludedWayIds = new Set();
+const fallbackWayIds = new Set();
+const wayDirections = new Map();
 const tiles = new Map();
 const places = [];
 const stats = {
@@ -212,84 +236,98 @@ const stats = {
 
 const source = createReadStream(pbfPath);
 const parser = parseOSM();
+const sourceHasher = createHash("sha256");
+source.on("data", (chunk) => sourceHasher.update(chunk));
 
 await new Promise((resolvePromise, rejectPromise) => {
   source.on("error", rejectPromise);
   parser.on("error", rejectPromise);
   parser.on("data", (batch) => {
     for (const item of batch) {
-    stats.parsed++;
-    if (item.type === "node") {
-      if (!inExpandedBounds(item.lat, item.lon, bounds)) continue;
-      nodes.set(item.id, { lat: item.lat, lon: item.lon });
-      stats.keptNodes++;
+      stats.parsed++;
+      if (item.type === "node") {
+        if (!inExpandedBounds(item.lat, item.lon, bounds)) continue;
+        nodes.set(item.id, { lat: item.lat, lon: item.lon });
+        if (isBlockedWalkingNode(item.tags)) blockedNodeCandidates.add(item.id);
+        stats.keptNodes++;
+        if (
+          placeKindFromTags(item.tags) &&
+          pointInMultiPolygon([item.lon, item.lat], seoul)
+        ) {
+          const place = placeFrom(item, item.lat, item.lon);
+          if (place) places.push(place);
+        }
+        continue;
+      }
+      if (item.type !== "way") continue;
+      const walkingCandidate = isSupportedWalkingTags(item.tags);
+      const walkable = walkingCandidate && isWalkableTags(item.tags);
+      const isBuilding = item.tags?.building !== undefined;
+      const placeKind = placeKindFromTags(item.tags);
+      if (!walkingCandidate && !isBuilding && !placeKind) continue;
+      const geometry = item.refs?.map((nodeId) => nodes.get(nodeId));
       if (
-        placeKindFromTags(item.tags) &&
-        pointInMultiPolygon([item.lon, item.lat], seoul)
+        !geometry ||
+        geometry.length === 0 ||
+        geometry.some((point) => !point) ||
+        geometry.length > MAX_GEOMETRY_POINTS
       ) {
-        const place = placeFrom(item, item.lat, item.lon);
+        stats.missingGeometry++;
+        continue;
+      }
+      const center = centerOf(geometry);
+      const inside =
+        pointInMultiPolygon([center.lon, center.lat], seoul) ||
+        geometry.some((point) =>
+          pointInMultiPolygon([point.lon, point.lat], seoul),
+        );
+      if (!inside) continue;
+
+      if (walkingCandidate && !walkable) excludedWayIds.add(item.id);
+
+      if (walkable && geometry.length >= 2) {
+        if (isFallbackRoad(item.tags)) fallbackWayIds.add(item.id);
+        for (const nodeId of item.refs) {
+          if (blockedNodeCandidates.has(nodeId)) blockedNodeIds.add(nodeId);
+        }
+        const walkDirection = walkDirectionFromTags(item.tags);
+        if (walkDirection === "forward" || walkDirection === "backward") {
+          wayDirections.set(item.id, walkDirection);
+        }
+        const element = JSON.stringify([
+          item.id,
+          walkwayFlags(item.tags),
+          item.refs,
+          compactGeometry(geometry),
+        ]);
+        for (const { x, y } of geometryTiles(geometry)) {
+          getTile(tiles, x, y).ways.push(element);
+        }
+        stats.walkways++;
+      }
+      if (
+        isBuilding &&
+        geometry.length >= 3 &&
+        pointInMultiPolygon([center.lon, center.lat], seoul)
+      ) {
+        const owner = coordinateToTile(center.lat, center.lon, ZOOM);
+        getTile(tiles, owner.x, owner.y).buildings.push(
+          JSON.stringify([
+            item.id,
+            compactPositive(
+              item.tags?.height ?? item.tags?.["building:height"],
+              1_000,
+            ),
+            compactPositive(item.tags?.["building:levels"], 300),
+            compactGeometry(geometry),
+          ]),
+        );
+        stats.buildings++;
+      }
+      if (placeKind && pointInMultiPolygon([center.lon, center.lat], seoul)) {
+        const place = placeFrom(item, center.lat, center.lon);
         if (place) places.push(place);
       }
-      continue;
-    }
-    if (item.type !== "way") continue;
-    const walkable = isWalkableTags(item.tags);
-    const isBuilding = item.tags?.building !== undefined;
-    const placeKind = placeKindFromTags(item.tags);
-    if (!walkable && !isBuilding && !placeKind) continue;
-    const geometry = item.refs?.map((nodeId) => nodes.get(nodeId));
-    if (
-      !geometry ||
-      geometry.length === 0 ||
-      geometry.some((point) => !point) ||
-      geometry.length > MAX_GEOMETRY_POINTS
-    ) {
-      stats.missingGeometry++;
-      continue;
-    }
-    const center = centerOf(geometry);
-    const inside =
-      pointInMultiPolygon([center.lon, center.lat], seoul) ||
-      geometry.some((point) =>
-        pointInMultiPolygon([point.lon, point.lat], seoul),
-      );
-    if (!inside) continue;
-
-    if (walkable && geometry.length >= 2) {
-      const element = JSON.stringify([
-        item.id,
-        walkwayFlags(item.tags),
-        item.refs,
-        compactGeometry(geometry),
-      ]);
-      for (const { x, y } of geometryTiles(geometry)) {
-        getTile(tiles, x, y).ways.push(element);
-      }
-      stats.walkways++;
-    }
-    if (
-      isBuilding &&
-      geometry.length >= 3 &&
-      pointInMultiPolygon([center.lon, center.lat], seoul)
-    ) {
-      const owner = coordinateToTile(center.lat, center.lon, ZOOM);
-      getTile(tiles, owner.x, owner.y).buildings.push(
-        JSON.stringify([
-          item.id,
-          compactPositive(
-            item.tags?.height ?? item.tags?.["building:height"],
-            1_000,
-          ),
-          compactPositive(item.tags?.["building:levels"], 300),
-          compactGeometry(geometry),
-        ]),
-      );
-      stats.buildings++;
-    }
-    if (placeKind && pointInMultiPolygon([center.lon, center.lat], seoul)) {
-      const place = placeFrom(item, center.lat, center.lon);
-      if (place) places.push(place);
-    }
     }
     if (stats.parsed % 1_000_000 < batch.length) {
       console.error(
@@ -305,6 +343,8 @@ await new Promise((resolvePromise, rejectPromise) => {
   parser.on("end", resolvePromise);
   source.pipe(parser);
 });
+const sourceSha256 = sourceHasher.digest("hex");
+const sourceStat = await stat(pbfPath);
 
 await mkdir(join(outputDirectory, "tiles"), { recursive: true });
 const manifestTiles = [];
@@ -321,19 +361,10 @@ for (const tile of [...tiles.values()].sort((a, b) =>
     id: tile.id,
     bounds: tileBounds(tile.x, tile.y, ZOOM),
     bytes: payloadBytes,
+    sha256: sha256Hex(payload),
   });
 }
 
-const manifest = {
-  schema: 1,
-  zoom: ZOOM,
-  coverage: bounds,
-  tiles: manifestTiles,
-};
-await writeFile(
-  join(outputDirectory, "manifest.json"),
-  `${JSON.stringify(manifest)}\n`,
-);
 const dedupedPlaces = dedupePlaces(places);
 const compiledPlaces = limitPlacesByKind(dedupedPlaces, {
   limits: {
@@ -355,18 +386,104 @@ const placesPayload = `${JSON.stringify({ schema: 2, places: compiledPlaces })}\
 if (Buffer.byteLength(placesPayload) > MAX_PLACE_BYTES) {
   throw new Error(`Place index exceeds ${MAX_PLACE_BYTES} bytes`);
 }
+const boundaryPayload = publicBoundaryPayload(boundary);
 await writeFile(join(outputDirectory, "places.json"), placesPayload);
-await writeFile(
-  join(outputDirectory, "boundary.json"),
-  `${JSON.stringify({ schema: 1, coordinates: seoul })}\n`,
-);
+await writeFile(join(outputDirectory, "boundary.json"), boundaryPayload);
+
+const walkingPolicy = {
+  schema: 1,
+  excludedWayIds: [...excludedWayIds].sort((a, b) => a - b),
+  blockedNodeIds: [...blockedNodeIds].sort((a, b) => a - b),
+  fallbackWayIds: [...fallbackWayIds].sort((a, b) => a - b),
+  directions: [...wayDirections]
+    .sort(([a], [b]) => a - b)
+    .map(([id, direction]) => [id, direction === "forward" ? 1 : -1]),
+};
+for (const [name, values] of [
+  ["excluded ways", walkingPolicy.excludedWayIds],
+  ["blocked nodes", walkingPolicy.blockedNodeIds],
+  ["fallback ways", walkingPolicy.fallbackWayIds],
+  ["directed ways", walkingPolicy.directions],
+]) {
+  if (values.length > MAX_POLICY_ENTRIES) {
+    throw new Error(`${name} exceed ${MAX_POLICY_ENTRIES} entries`);
+  }
+}
+
+const downloadUrl = process.env.OSM_SOURCE_URL ?? null;
+const downloadedAt = process.env.OSM_DOWNLOADED_AT ?? null;
+if (downloadUrl !== null && !downloadUrl.startsWith("https://")) {
+  throw new Error("OSM_SOURCE_URL must use https");
+}
+if (downloadedAt !== null && !Number.isFinite(Date.parse(downloadedAt))) {
+  throw new Error("OSM_DOWNLOADED_AT must be an ISO date");
+}
+const descriptor = {
+  schema: 3,
+  zoom: ZOOM,
+  coverage: bounds,
+  source: {
+    schema: 1,
+    fileName: basename(pbfPath),
+    bytes: sourceStat.size,
+    sha256: sourceSha256,
+    observedModifiedAt: sourceStat.mtime.toISOString(),
+    downloadUrl,
+    downloadedAt,
+  },
+  generator: {
+    schema: 3,
+    script: "scripts/build-seoul-tiles.mjs",
+  },
+  artifacts: {
+    places: artifactEntry("places.json", placesPayload),
+    boundary: artifactEntry("boundary.json", boundaryPayload),
+  },
+  tiles: manifestTiles,
+  walkingPolicy,
+};
+const releaseId = releaseIdFor(descriptor);
+const manifest = { ...descriptor, releaseId };
+const manifestPayload = `${JSON.stringify(manifest)}\n`;
+const integrity = {
+  schema: 1,
+  releaseId,
+  manifestSha256: sha256Hex(manifestPayload),
+  placesSha256: descriptor.artifacts.places.sha256,
+};
+await writeFile(join(outputDirectory, "manifest.json"), manifestPayload);
 
 const totalBytes = manifestTiles.reduce((sum, tile) => sum + tile.bytes, 0);
 if (totalBytes > MAX_TOTAL_TILE_BYTES) {
   throw new Error(`Seoul tiles exceed ${MAX_TOTAL_TILE_BYTES} bytes`);
 }
+const integrityModulePayload = `// Generated by scripts/build-seoul-tiles.mjs. Do not edit by hand.\nexport const SEOUL_ARTIFACT_INTEGRITY = Object.freeze(${JSON.stringify(integrity, null, 2)});\n`;
+const integrityModuleTemporaryPath = `${integrityModulePath}.tmp`;
+const runtimeBoundaryTemporaryPath = `${runtimeBoundaryModulePath}.tmp`;
+await Promise.all([
+  writeFile(integrityModuleTemporaryPath, integrityModulePayload),
+  writeFile(runtimeBoundaryTemporaryPath, runtimeBoundaryPayload),
+]);
+await Promise.all([
+  verifySeoulArtifacts(outputDirectory, integrity),
+  verifyPublicBoundaryArtifact(
+    boundaryPath,
+    join(outputDirectory, "boundary.json"),
+  ),
+  verifyRuntimeBoundaryArtifact(boundaryPath, runtimeBoundaryTemporaryPath),
+]);
 await rm(targetOutputDirectory, { recursive: true, force: true });
 await rename(outputDirectory, targetOutputDirectory);
+await Promise.all([
+  rename(integrityModuleTemporaryPath, integrityModulePath),
+  rename(runtimeBoundaryTemporaryPath, runtimeBoundaryModulePath),
+]);
+await verifySeoulArtifacts(targetOutputDirectory, integrity);
+await verifyPublicBoundaryArtifact(
+  boundaryPath,
+  join(targetOutputDirectory, "boundary.json"),
+);
+await verifyRuntimeBoundaryArtifact(boundaryPath, runtimeBoundaryModulePath);
 console.log(
   JSON.stringify({
     ...stats,
@@ -375,5 +492,12 @@ console.log(
     placeCandidates: dedupedPlaces.length,
     totalBytes,
     largestTileBytes: Math.max(...manifestTiles.map((tile) => tile.bytes)),
+    excludedWays: excludedWayIds.size,
+    blockedNodes: blockedNodeIds.size,
+    fallbackWays: fallbackWayIds.size,
+    directedWays: wayDirections.size,
+    releaseId,
+    manifestSha256: integrity.manifestSha256,
+    sourceSha256,
   }),
 );

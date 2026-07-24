@@ -15,10 +15,8 @@ import {
   weatherGuidance,
   type CurrentWeather,
 } from "./domain/weather/currentWeather";
-import {
-  calculateRouteBundleForPlaces,
-  PLACES,
-} from "./domain/routing/routeService";
+import { PLACES } from "./domain/routing/routeService";
+import { calculateRouteBundleForPlaces } from "./domain/routing/routeWorkerClient";
 import type {
   Place,
   RouteBundle,
@@ -131,6 +129,7 @@ function App() {
     | "complex-data"
   >("generic");
   const latestRequest = useRef(0);
+  const activeRouteController = useRef<AbortController | null>(null);
   const latestLocationRequest = useRef(0);
 
   const busy = status === "loading" || locating;
@@ -177,8 +176,38 @@ function App() {
     };
   }, [weatherAttempt]);
 
+  useEffect(() => {
+    const cancelActiveRoute = () => {
+      const controller = activeRouteController.current;
+      if (!controller) return false;
+      latestRequest.current += 1;
+      controller.abort();
+      activeRouteController.current = null;
+      return true;
+    };
+    const handlePageHide = () => {
+      if (!cancelActiveRoute()) return;
+      setBundle(null);
+      setStatus("idle");
+      setRouteError("generic");
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") handlePageHide();
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      cancelActiveRoute();
+      window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
   const invalidateResult = () => {
     latestRequest.current += 1;
+    activeRouteController.current?.abort();
+    activeRouteController.current = null;
     setBundle(null);
     setStatus("idle");
     setRouteError("generic");
@@ -194,16 +223,23 @@ function App() {
       setStatus("error");
       return;
     }
+    activeRouteController.current?.abort();
+    const controller = new AbortController();
+    activeRouteController.current = controller;
     const requestId = ++latestRequest.current;
     setStatus("loading");
     setRouteError("generic");
     try {
-      const result = await calculateRouteBundleForPlaces({
-        start: selectedStart,
-        goal: selectedGoal,
-        offsetMinutes: offset,
-      });
-      if (requestId !== latestRequest.current) return;
+      const result = await calculateRouteBundleForPlaces(
+        {
+          start: selectedStart,
+          goal: selectedGoal,
+          offsetMinutes: offset,
+        },
+        { signal: controller.signal },
+      );
+      if (requestId !== latestRequest.current || controller.signal.aborted)
+        return;
       setBundle(result);
       setSelectedMode((current) =>
         result.routes.some((route) => route.mode === current)
@@ -212,7 +248,8 @@ function App() {
       );
       setStatus("success");
     } catch (error) {
-      if (requestId !== latestRequest.current) return;
+      if (requestId !== latestRequest.current || controller.signal.aborted)
+        return;
       setBundle(null);
       const errorMessage = error instanceof Error ? error.message : "";
       setRouteError(
@@ -230,6 +267,10 @@ function App() {
                   : "generic",
       );
       setStatus("error");
+    } finally {
+      if (activeRouteController.current === controller) {
+        activeRouteController.current = null;
+      }
     }
   };
 

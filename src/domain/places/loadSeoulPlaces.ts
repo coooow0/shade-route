@@ -1,4 +1,5 @@
 import { fetchJsonWithLimit } from "../data/fetchJson";
+import { SEOUL_ARTIFACT_INTEGRITY } from "../../data/seoulArtifactIntegrity.mjs";
 import { isWithinSeoul } from "../location/serviceArea";
 import type { Place, PlaceKind } from "../routing/types";
 import { preparePlaceSearch } from "./searchPlaces";
@@ -103,6 +104,7 @@ function parsePlaceData(value: unknown): readonly Place[] {
 export async function loadSeoulPlaces(
   fetcher: typeof fetch = fetch,
   baseUrl = import.meta.env.BASE_URL,
+  expectedSha256 = SEOUL_ARTIFACT_INTEGRITY.placesSha256,
 ): Promise<readonly Place[]> {
   const base = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
   try {
@@ -113,13 +115,16 @@ export async function loadSeoulPlaces(
         maxBytes: MAX_PLACE_BYTES,
         loadError: "PLACE_LOAD_FAILED",
         invalidError: "INVALID_PLACE_DATA",
+        expectedSha256,
+        integrityError: "PLACE_ARTIFACT_MISMATCH",
       }),
     );
   } catch (error) {
     if (
       error instanceof Error &&
       (error.message === "INVALID_PLACE_DATA" ||
-        error.message === "PLACE_LOAD_FAILED")
+        error.message === "PLACE_LOAD_FAILED" ||
+        error.message === "PLACE_ARTIFACT_MISMATCH")
     ) {
       throw error;
     }

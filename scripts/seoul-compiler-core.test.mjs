@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   coordinateToTile,
   formatPlaceAddress,
+  isBlockedWalkingNode,
   isFallbackRoad,
   limitPlacesByKind,
   placeKindFromTags,
@@ -9,6 +10,7 @@ import {
   normalizePlaceName,
   pointInMultiPolygon,
   tileBounds,
+  walkDirectionFromTags,
 } from "./seoul-compiler-core.mjs";
 
 describe("Seoul compiler core", () => {
@@ -17,9 +19,9 @@ describe("Seoul compiler core", () => {
     expect(isWalkableTags({ highway: "primary", sidewalk: "yes" })).toBe(true);
     expect(isWalkableTags({ highway: "secondary" })).toBe(true);
     expect(isFallbackRoad({ highway: "secondary" })).toBe(true);
-    expect(
-      isFallbackRoad({ highway: "secondary", sidewalk: "yes" }),
-    ).toBe(false);
+    expect(isFallbackRoad({ highway: "secondary", sidewalk: "yes" })).toBe(
+      false,
+    );
     expect(isWalkableTags({ highway: "secondary", sidewalk: "no" })).toBe(
       false,
     );
@@ -29,6 +31,105 @@ describe("Seoul compiler core", () => {
     expect(isWalkableTags({ highway: "service", access: "private" })).toBe(
       false,
     );
+  });
+
+  it("rejects public-routing access restrictions and keeps explicit foot overrides", () => {
+    for (const foot of ["no", "private", "permit", "use_sidepath"]) {
+      expect(isWalkableTags({ highway: "footway", foot })).toBe(false);
+    }
+    for (const access of [
+      "no",
+      "private",
+      "permit",
+      "customers",
+      "destination",
+      "residents",
+      "bus",
+      "unknown",
+    ]) {
+      expect(isWalkableTags({ highway: "service", access })).toBe(false);
+    }
+    for (const foot of ["yes", "designated", "permissive"]) {
+      expect(
+        isWalkableTags({ highway: "footway", access: "private", foot }),
+      ).toBe(true);
+    }
+  });
+
+  it("rejects unsupported conditional, lifecycle, and technical walking states", () => {
+    expect(
+      isWalkableTags({
+        highway: "footway",
+        "access:conditional": "no @ (Mo-Fr 08:00-09:00)",
+      }),
+    ).toBe(false);
+    expect(isWalkableTags({ highway: "footway", disused: "yes" })).toBe(false);
+    expect(
+      isWalkableTags({
+        highway: "path",
+        sac_scale: "demanding_mountain_hiking",
+      }),
+    ).toBe(false);
+    expect(
+      isWalkableTags({ highway: "path", sac_scale: "mountain_hiking" }),
+    ).toBe(true);
+    expect(
+      isFallbackRoad({ highway: "path", sac_scale: "mountain_hiking" }),
+    ).toBe(true);
+    expect(
+      isWalkableTags({ highway: "footway", construction: "resurfacing" }),
+    ).toBe(true);
+  });
+
+  it("classifies only explicit pedestrian directions", () => {
+    expect(walkDirectionFromTags({ highway: "footway", oneway: "yes" })).toBe(
+      "both",
+    );
+    expect(
+      walkDirectionFromTags({ highway: "footway", "oneway:foot": "yes" }),
+    ).toBe("forward");
+    expect(
+      walkDirectionFromTags({ highway: "footway", "oneway:foot": "-1" }),
+    ).toBe("backward");
+    expect(
+      walkDirectionFromTags({ highway: "footway", "foot:forward": "no" }),
+    ).toBe("backward");
+    expect(
+      walkDirectionFromTags({ highway: "steps", conveying: "forward" }),
+    ).toBe("forward");
+    expect(
+      walkDirectionFromTags({ highway: "steps", conveying: "backward" }),
+    ).toBe("backward");
+    expect(walkDirectionFromTags({ highway: "steps", conveying: "yes" })).toBe(
+      null,
+    );
+    expect(isWalkableTags({ highway: "steps", conveying: "reversible" })).toBe(
+      false,
+    );
+  });
+
+  it("blocks only nodes with explicit public-foot restrictions", () => {
+    expect(isBlockedWalkingNode({ barrier: "gate", access: "private" })).toBe(
+      true,
+    );
+    expect(isBlockedWalkingNode({ barrier: "gate", locked: "yes" })).toBe(true);
+    expect(
+      isBlockedWalkingNode({
+        barrier: "gate",
+        access: "private",
+        foot: "permissive",
+      }),
+    ).toBe(false);
+    expect(isBlockedWalkingNode({ barrier: "bollard" })).toBe(false);
+  });
+
+  it("does not route on a high-class road when its sidewalk is separate", () => {
+    const tags = { highway: "residential", "sidewalk:both": "separate" };
+    expect(isWalkableTags(tags)).toBe(true);
+    expect(isFallbackRoad(tags)).toBe(true);
+
+    const arterial = { highway: "primary", "sidewalk:both": "separate" };
+    expect(isWalkableTags(arterial)).toBe(false);
   });
 
   it("handles polygon holes", () => {
@@ -75,12 +176,12 @@ describe("Seoul compiler core", () => {
     expect(placeKindFromTags({ amenity: "cafe", name: "테스트 카페" })).toBe(
       "cafe",
     );
-    expect(placeKindFromTags({ healthcare: "hospital", name: "테스트 병원" })).toBe(
-      "medical",
-    );
-    expect(placeKindFromTags({ shop: "convenience", name: "테스트 상점" })).toBe(
-      "store",
-    );
+    expect(
+      placeKindFromTags({ healthcare: "hospital", name: "테스트 병원" }),
+    ).toBe("medical");
+    expect(
+      placeKindFromTags({ shop: "convenience", name: "테스트 상점" }),
+    ).toBe("store");
     expect(placeKindFromTags({ building: "yes", name: "테스트 타워" })).toBe(
       "building",
     );
@@ -95,9 +196,9 @@ describe("Seoul compiler core", () => {
         "addr:housenumber": "142",
       }),
     ).toBe("서울특별시 테헤란로 142");
-    expect(formatPlaceAddress({ "addr:full": "서울 강남구 테헤란로 142" })).toBe(
-      "서울 강남구 테헤란로 142",
-    );
+    expect(
+      formatPlaceAddress({ "addr:full": "서울 강남구 테헤란로 142" }),
+    ).toBe("서울 강남구 테헤란로 142");
   });
 
   it("reserves each destination category before filling unused capacity", () => {

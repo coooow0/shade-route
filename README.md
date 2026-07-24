@@ -1,12 +1,13 @@
 # shade-route
 
-Apps in Toss 프로젝트입니다.
+그늘길은 출발 시각의 건물 그림자를 계산해 햇빛 노출을 줄이는 서울 도보 경로를 추천하는 앱인토스 미니앱입니다.
 
 서비스 목표, 현재 구현, 제품 결정과 다음 우선순위는 [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md)에 정리되어 있습니다.
 
 ## 시작하기
 
 ```bash
+npm ci
 npm run dev
 ```
 
@@ -44,6 +45,17 @@ npm run data:seoul
 - 루팅 타일을 큰 객체로 확장하기 전에 요소·좌표 수를 검증하고, 그래프·그늘·경로·상세 길안내의 작업량을 제한해 WebView 자원 고갈을 막아요.
 - Leaflet 경로는 세그먼트별 레이어 대신 최대 4개 multi-polyline으로 묶고, 상세 길안내는 펼칠 때만 DOM을 만들어요.
 - 세부 공격 경로, 상한 근거, 호환성, 테스트는 [PR 1 보안 보고서](./docs/security/pr1-webview-resource-hardening.md)와 [HTML 요약](./docs/security/pr1-webview-resource-hardening.html)에 정리했어요.
+- OSM의 제한 접근, 잠긴 게이트, 보행·에스컬레이터 방향을 경로 그래프에 반영하고, 보행 공간이 불확실한 도로에는 안전 비용을 적용해요.
+- 보행 판정 근거, 실제 서울 데이터 영향, 오탐 경계와 테스트는 [PR 2 보안 보고서](./docs/security/pr2-osm-pedestrian-semantics.md)와 [HTML 요약](./docs/security/pr2-osm-pedestrian-semantics.html)에 정리했어요.
+- 앱 번들이 manifest와 장소 인덱스를 직접, manifest가 개별 경로 타일을 SHA-256으로 고정해 부분 배포·스테일 캐시·변조를 fail-closed로 차단해요.
+- 경로 데이터 로드와 계산은 module Web Worker에서 실행하고, 앱이 닫히거나 백그라운드 수명주기 이벤트를 받으면 진행 중 Worker 실행 컨텍스트를 종료해요.
+- 데이터 무결성 연결, Worker 메시지 경계, 성능·호환성·남은 위험은 [PR 3 보안 보고서](./docs/security/pr3-artifact-integrity-worker.md)와 [HTML 요약](./docs/security/pr3-artifact-integrity-worker.html)에 정리했어요.
+
+## 라이선스와 기여
+
+- 소스 코드 라이선스는 아직 선택하지 않았어요. 공개 전환 전에 [공개 체크리스트](./docs/public-release-checklist.md)에 따라 `LICENSE`를 추가해야 해요.
+- 서울 경로·장소·건물 데이터의 OpenStreetMap 저작자 표시와 데이터별 출처는 [데이터 안내](./public/data/README.md)를 확인해 주세요.
+- 기여 방법은 [CONTRIBUTING.md](./CONTRIBUTING.md), 보안 문제 제보 방법은 [SECURITY.md](./SECURITY.md)에 정리되어 있어요.
 
 ## 배포하기
 

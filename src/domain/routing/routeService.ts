@@ -14,6 +14,7 @@ import {
   WALK_SPEED,
   type RouteSummary,
 } from "./router";
+import { FALLBACK_ROAD_MULTIPLIER } from "./safetyPolicy";
 import { makeShadeService } from "./shade";
 import { buildShadowIndex } from "./shadow";
 import { sunState, timeSlot } from "./sun";
@@ -120,7 +121,7 @@ export function calculateFromData({
 }: CalculateFromDataInput): RouteBundle {
   if (start.id === goal.id) throw new Error("SAME_PLACE");
   const projection = makeProjection(CENTER.lat, CENTER.lon);
-  const baseGraph = buildGraph(data.ways, projection);
+  const baseGraph = buildGraph(data.ways, projection, data.walkingPolicy);
   if (baseGraph.nodes.size === 0) throw new Error("EMPTY_GRAPH");
   const requestedStart = projection.toXY(start.lat, start.lon);
   const requestedGoal = projection.toXY(goal.lat, goal.lon);
@@ -148,7 +149,7 @@ export function calculateFromData({
       candidateGoalId,
       MODE_WEIGHTS.shortest,
       NO_SHADE,
-      1,
+      FALLBACK_ROAD_MULTIPLIER,
     );
     if (!previewPath) return [];
     const snapDistance = candidate.snapPoints.reduce(
@@ -156,19 +157,19 @@ export function calculateFromData({
         total + (point ? distance(requestedPoints[index], point) : 0),
       0,
     );
-    const routeLength = previewPath.edges.reduce(
-      (total, edge) => total + edge.length,
+    const routeCost = previewPath.edges.reduce(
+      (total, edge) =>
+        total +
+        edge.length *
+          (edge.steps ? 1.5 : 1) *
+          (edge.fallbackRoad ? FALLBACK_ROAD_MULTIPLIER : 1),
       snapDistance,
     );
-    return [{ candidate, routeLength }];
+    return [{ candidate, routeCost }];
   });
-  const snapped = snapCandidates.reduce<
-    (typeof snapCandidates)[number] | null
-  >(
+  const snapped = snapCandidates.reduce<(typeof snapCandidates)[number] | null>(
     (best, current) =>
-      best === null || current.routeLength < best.routeLength
-        ? current
-        : best,
+      best === null || current.routeCost < best.routeCost ? current : best,
     null,
   )?.candidate;
   if (!snapped) throw new Error("SNAP_FAILED");
@@ -201,7 +202,7 @@ export function calculateFromData({
       goalId,
       lambda,
       shade,
-      mode === "shortest" ? 1 : 1.5,
+      FALLBACK_ROAD_MULTIPLIER,
     );
     if (!path) throw new Error("ROUTE_NOT_FOUND");
     const summary = addAccessConnectors(

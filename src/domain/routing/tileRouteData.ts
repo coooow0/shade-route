@@ -1,10 +1,15 @@
 import { fetchJsonWithLimit } from "../data/fetchJson";
+import { SEOUL_ARTIFACT_INTEGRITY } from "../../data/seoulArtifactIntegrity.mjs";
 import {
   assertRouteDataBudget,
   assertTileDataBudget,
   ROUTE_RESOURCE_LIMITS,
   type RouteDataWork,
 } from "./resourceLimits";
+import {
+  isTileManifestShape,
+  TILE_MANIFEST_LIMITS,
+} from "./tileManifestValidation.mjs";
 import type {
   CorridorData,
   LatLng,
@@ -12,11 +17,9 @@ import type {
   OverpassElement,
 } from "./types";
 
-const TILE_ID = /^\d{1,2}-\d{1,8}-\d{1,8}$/;
-const MAX_MANIFEST_BYTES = 1_000_000;
-const MAX_TILE_BYTES = 2_000_000;
-const MAX_ROUTE_BYTES = 12_000_000;
-const MAX_MANIFEST_TILES = 2_000;
+const MAX_MANIFEST_BYTES = TILE_MANIFEST_LIMITS.manifestBytes;
+const MAX_TILE_BYTES = TILE_MANIFEST_LIMITS.tileBytes;
+const MAX_ROUTE_BYTES = TILE_MANIFEST_LIMITS.artifactBytes;
 const MAX_ROUTE_TILES = 36;
 const TILE_FETCH_CONCURRENCY = 6;
 const DEFAULT_BUFFER_DEGREES = 0.01;
@@ -33,13 +36,54 @@ export interface TileManifestEntry {
   readonly id: string;
   readonly bounds: GeoBounds;
   readonly bytes: number;
+  readonly sha256: string;
+}
+
+export interface ArtifactManifestEntry {
+  readonly path: string;
+  readonly bytes: number;
+  readonly sha256: string;
+}
+
+export interface SeoulArtifactIntegrity {
+  readonly schema: 1;
+  readonly releaseId: string;
+  readonly manifestSha256: string;
+  readonly placesSha256: string;
 }
 
 export interface TileManifest {
-  readonly schema: 1;
+  readonly schema: 3;
+  readonly releaseId: string;
   readonly zoom: number;
   readonly coverage: GeoBounds;
+  readonly source: {
+    readonly schema: 1;
+    readonly fileName: string;
+    readonly bytes: number;
+    readonly sha256: string;
+    readonly observedModifiedAt: string;
+    readonly downloadUrl: string | null;
+    readonly downloadedAt: string | null;
+  };
+  readonly generator: {
+    readonly schema: 3;
+    readonly script: "scripts/build-seoul-tiles.mjs";
+  };
+  readonly artifacts: {
+    readonly places: ArtifactManifestEntry;
+    readonly boundary: ArtifactManifestEntry;
+  };
   readonly tiles: readonly TileManifestEntry[];
+  readonly walkingPolicy: WalkingPolicyManifest;
+}
+
+export interface WalkingPolicyManifest {
+  readonly schema: 1;
+  readonly excludedWayIds: readonly number[];
+  readonly blockedNodeIds: readonly number[];
+  readonly fallbackWayIds: readonly number[];
+  readonly directions: readonly (readonly [number, 1 | -1])[];
 }
 
 interface RouteDataTile {
@@ -62,45 +106,8 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-function isBounds(value: unknown): value is GeoBounds {
-  if (typeof value !== "object" || value === null) return false;
-  const bounds = value as Partial<GeoBounds>;
-  return (
-    isFiniteNumber(bounds.south) &&
-    isFiniteNumber(bounds.west) &&
-    isFiniteNumber(bounds.north) &&
-    isFiniteNumber(bounds.east) &&
-    bounds.south >= -90 &&
-    bounds.north <= 90 &&
-    bounds.west >= -180 &&
-    bounds.east <= 180 &&
-    bounds.south < bounds.north &&
-    bounds.west < bounds.east
-  );
-}
-
 function isTileManifest(value: unknown): value is TileManifest {
-  if (typeof value !== "object" || value === null) return false;
-  const manifest = value as Partial<TileManifest>;
-  return (
-    manifest.schema === 1 &&
-    Number.isInteger(manifest.zoom) &&
-    (manifest.zoom ?? 0) >= 0 &&
-    (manifest.zoom ?? 0) <= 22 &&
-    isBounds(manifest.coverage) &&
-    Array.isArray(manifest.tiles) &&
-    manifest.tiles.length <= MAX_MANIFEST_TILES &&
-    manifest.tiles.every(
-      (tile) =>
-        typeof tile === "object" &&
-        tile !== null &&
-        TILE_ID.test(tile.id) &&
-        isBounds(tile.bounds) &&
-        Number.isInteger(tile.bytes) &&
-        tile.bytes > 0 &&
-        tile.bytes <= MAX_TILE_BYTES,
-    )
-  );
+  return isTileManifestShape(value);
 }
 
 function isCompactCoordinates(
@@ -230,25 +237,33 @@ function expandCoordinates(coordinates: readonly number[]) {
   }));
 }
 
-function expandCompactTile(tile: CompactRouteDataTile): RouteDataTile {
-  const ways = tile.w.map((value) => {
+function expandCompactTile(
+  tile: CompactRouteDataTile,
+  excludedWayIds: ReadonlySet<number>,
+  fallbackWayIds: ReadonlySet<number>,
+): RouteDataTile {
+  const ways = tile.w.flatMap((value) => {
     const [id, flags, nodes, coordinates] = value as [
       number,
       number,
       number[],
       number[],
     ];
-    return {
-      type: "way",
-      id,
-      tags: {
-        highway: flags & 2 ? "steps" : "footway",
-        ...(flags & 1 ? { covered: "yes" } : {}),
-        ...(flags & 4 ? { "shade-route:fallback": "yes" } : {}),
+    if (excludedWayIds.has(id)) return [];
+    const effectiveFlags = fallbackWayIds.has(id) ? flags | 4 : flags;
+    return [
+      {
+        type: "way",
+        id,
+        tags: {
+          highway: effectiveFlags & 2 ? "steps" : "footway",
+          ...(effectiveFlags & 1 ? { covered: "yes" } : {}),
+          ...(effectiveFlags & 4 ? { "shade-route:fallback": "yes" } : {}),
+        },
+        nodes: [...nodes],
+        geometry: expandCoordinates(coordinates),
       },
-      nodes: [...nodes],
-      geometry: expandCoordinates(coordinates),
-    };
+    ];
   });
   const buildings = tile.b.map((value) => {
     const [id, height, levels, coordinates] = value as [
@@ -339,6 +354,7 @@ export async function loadTiledRouteData(
   fetcher: typeof fetch = fetch,
   baseUrl = import.meta.env.BASE_URL,
   bufferDegrees = DEFAULT_BUFFER_DEGREES,
+  integrity: SeoulArtifactIntegrity = SEOUL_ARTIFACT_INTEGRITY,
 ): Promise<CorridorData> {
   const base = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
   const manifestValue = await fetchJsonWithLimit({
@@ -347,8 +363,16 @@ export async function loadTiledRouteData(
     maxBytes: MAX_MANIFEST_BYTES,
     loadError: "TILE_LOAD_FAILED",
     invalidError: "INVALID_TILE_MANIFEST",
+    expectedSha256: integrity.manifestSha256,
+    integrityError: "ROUTE_ARTIFACT_MISMATCH",
   });
   if (!isTileManifest(manifestValue)) throw new Error("INVALID_TILE_MANIFEST");
+  if (
+    manifestValue.releaseId !== integrity.releaseId ||
+    manifestValue.artifacts.places.sha256 !== integrity.placesSha256
+  ) {
+    throw new Error("ROUTE_ARTIFACT_MISMATCH");
+  }
 
   const selected = selectManifestTiles(
     manifestValue,
@@ -361,20 +385,38 @@ export async function loadTiledRouteData(
   const declaredTotal = selected.reduce((total, tile) => total + tile.bytes, 0);
   if (declaredTotal > MAX_ROUTE_BYTES) throw new Error("ROUTE_TOO_LARGE");
 
-  const compactTiles = await loadInBatches(selected, async (entry) => {
-    const value = await fetchJsonWithLimit({
-      fetcher,
-      url: `${base}${DATA_DIRECTORY}/tiles/${entry.id}.json`,
-      maxBytes: Math.min(entry.bytes + 1_024, MAX_TILE_BYTES),
-      loadError: "TILE_LOAD_FAILED",
-      invalidError: "INVALID_TILE_DATA",
+  let actualTotalBytes = 0;
+  const batchController = new AbortController();
+  let compactTiles: readonly CompactRouteDataTile[];
+  try {
+    compactTiles = await loadInBatches(selected, async (entry) => {
+      const value = await fetchJsonWithLimit({
+        fetcher,
+        url: `${base}${DATA_DIRECTORY}/tiles/${entry.id}.json`,
+        maxBytes: MAX_TILE_BYTES,
+        loadError: "TILE_LOAD_FAILED",
+        invalidError: "INVALID_TILE_DATA",
+        expectedSha256: entry.sha256,
+        integrityError: "ROUTE_ARTIFACT_MISMATCH",
+        signal: batchController.signal,
+        abortError: "TILE_LOAD_FAILED",
+        onBytes: (bytes) => {
+          actualTotalBytes += bytes;
+          if (actualTotalBytes > MAX_ROUTE_BYTES) {
+            throw new Error("ROUTE_TOO_LARGE");
+          }
+        },
+      });
+      const tile = decodeRouteDataTile(value, entry.id);
+      if (!tile) {
+        throw new Error("INVALID_TILE_DATA");
+      }
+      return tile;
     });
-    const tile = decodeRouteDataTile(value, entry.id);
-    if (!tile) {
-      throw new Error("INVALID_TILE_DATA");
-    }
-    return tile;
-  });
+  } catch (error) {
+    batchController.abort();
+    throw error;
+  }
 
   const routeWork = compactTiles.map(compactTileWork).reduce(addRouteDataWork, {
     ways: 0,
@@ -383,10 +425,28 @@ export async function loadTiledRouteData(
     buildingPoints: 0,
   });
   assertRouteDataBudget(routeWork);
-  const tiles = compactTiles.map(expandCompactTile);
+  const walkingPolicy = {
+    excludedWayIds: new Set(manifestValue.walkingPolicy.excludedWayIds),
+    blockedNodeIds: new Set(manifestValue.walkingPolicy.blockedNodeIds),
+    fallbackWayIds: new Set(manifestValue.walkingPolicy.fallbackWayIds),
+    wayDirections: new Map(
+      manifestValue.walkingPolicy.directions.map(
+        ([id, direction]) =>
+          [id, direction === 1 ? "forward" : "backward"] as const,
+      ),
+    ),
+  } as const;
+  const tiles = compactTiles.map((tile) =>
+    expandCompactTile(
+      tile,
+      walkingPolicy.excludedWayIds,
+      walkingPolicy.fallbackWayIds,
+    ),
+  );
 
   return {
     ways: mergeElements(tiles.map((tile) => tile.ways)),
     buildings: mergeElements(tiles.map((tile) => tile.buildings)),
+    walkingPolicy,
   };
 }

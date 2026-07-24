@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PR 2 — OSM 보행 접근·방향 안전성</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #19212b;
+        --muted: #657184;
+        --line: #dce3ea;
+        --bg: #f4f7fa;
+        --card: #fff;
+        --accent: #1769aa;
+        --medium: #9a5b00;
+        --ok: #167245;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          15px/1.65 -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+      main {
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: 48px 24px 80px;
+      }
+      h1,
+      h2,
+      h3 {
+        line-height: 1.25;
+        letter-spacing: -0.02em;
+      }
+      h1 {
+        margin: 0 0 10px;
+        font-size: 34px;
+      }
+      h2 {
+        margin: 42px 0 16px;
+        font-size: 24px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 10px;
+      }
+      h3 {
+        margin: 30px 0 12px;
+        font-size: 19px;
+      }
+      p {
+        margin: 10px 0;
+      }
+      a {
+        color: var(--accent);
+      }
+      code {
+        background: #edf2f6;
+        border-radius: 4px;
+        padding: 2px 5px;
+        font-size: 0.92em;
+      }
+      pre {
+        overflow: auto;
+        background: #17212b;
+        color: #eef6ff;
+        border-radius: 10px;
+        padding: 18px;
+      }
+      .meta {
+        color: var(--muted);
+        margin-bottom: 28px;
+      }
+      .summary,
+      .finding,
+      .note {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 22px;
+        margin: 16px 0;
+        box-shadow: 0 4px 18px rgba(29, 47, 64, 0.05);
+      }
+      .finding {
+        border-left: 5px solid var(--medium);
+      }
+      .badge {
+        display: inline-block;
+        margin-right: 8px;
+        border-radius: 999px;
+        padding: 3px 10px;
+        font-size: 12px;
+        font-weight: 700;
+        background: #fff0d7;
+        color: #754500;
+      }
+      .fixed {
+        background: #e2f6eb;
+        color: var(--ok);
+      }
+      ul {
+        padding-left: 22px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--card);
+      }
+      th,
+      td {
+        border: 1px solid var(--line);
+        padding: 9px 12px;
+        text-align: left;
+      }
+      th {
+        background: #edf2f6;
+      }
+      td:last-child {
+        font-variant-numeric: tabular-nums;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .metric {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 14px;
+      }
+      .metric strong {
+        display: block;
+        font-size: 22px;
+      }
+      .metric span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      @media (max-width: 760px) {
+        main {
+          padding: 28px 16px 56px;
+        }
+        .grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        h1 {
+          font-size: 28px;
+        }
+      }
+      @media print {
+        body {
+          background: #fff;
+        }
+        .summary,
+        .finding,
+        .note,
+        .metric {
+          box-shadow: none;
+          break-inside: avoid;
+        }
+        main {
+          max-width: none;
+          padding: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>PR 2 — OSM 보행 접근·방향 안전성</h1>
+      <p class="meta">2026-07-15 · 구현·서울 데이터 재생성 완료 · 커밋 전</p>
+
+      <section class="summary">
+        <span class="badge">Medium × 5</span
+        ><span class="badge fixed">4건 수정 · 1건 후속</span>
+        <h2>결론</h2>
+        <p>
+          제한 way, 잠긴 게이트, 역방향 에스컬레이터, fallback 도로 비용 문제를
+          막았다. 인증 정보 유출이나 원격 코드 실행이 아니라 보행 안전과 무단
+          진입 위험이며, 특정 지도 데이터와 경로 조합이 필요해 네 건 모두
+          Medium으로 판정했다.
+        </p>
+        <p>
+          생성기와 런타임은 이제 같은 보행 판정 모듈을 사용한다. manifest schema
+          2가 제외 way, 차단 노드, fallback, 보행 방향을 필수로 전달하고, 앱은
+          예전 타일 캐시도 로딩 단계에서 다시 필터링한다.
+        </p>
+      </section>
+
+      <h2>실제 오동작 경로</h2>
+      <pre>
+OSM PBF의 access/foot/barrier/conveying 태그
+  → 서울 데이터 생성기
+  → 제한 태그가 없는 compact 타일
+  → 일반 footway/steps로 복원
+  → 양방향 그래프와 A*
+  → 사용자에게 제한 구간을 도보 경로로 표시</pre>
+
+      <section class="finding">
+        <span class="badge">Medium</span
+        ><span class="badge fixed">수정 완료</span>
+        <h3>1. 제한 way가 일반 보행로로 복원됨</h3>
+        <p>
+          <strong>위치:</strong> 수정 전
+          <code>010e6e3:scripts/seoul-compiler-core.mjs:129-188</code>,
+          <code>scripts/build-seoul-tiles.mjs:236-264</code>,
+          <code>src/domain/routing/tileRouteData.ts:233-252</code>. 현재 판정은
+          <code>src/domain/routing/walkability.mjs:115-149</code>, 캐시 필터는
+          <code>tileRouteData.ts:279-307, 438-455</code>.
+        </p>
+        <p>
+          <strong>조건·경로:</strong> 공개 통행이 제한된 way가 출발지와 도착지
+          corridor에 있고 A* 비용이 낮으면 된다. 수정 전 compact 타일이 제한
+          태그를 버린 뒤 앱이 일반 footway로 복원했다.
+        </p>
+        <p>
+          <strong>근거:</strong> 기존 타일에 명확한 제한 way 최소 102개, 744개
+          세그먼트, 약 14.48km가 포함됐다. 수정 전 타일 레코드의
+          <code>buildGraph → astar</code> 재현은 경로 생성에 성공했다.
+        </p>
+        <p>
+          <strong>오탐:</strong> <code>foot=yes/designated/permissive</code>와
+          <code>access=permissive</code>는 유지한다. access unknown과 조건부
+          허용은 실제 통행 가능할 수 있으나 조건 평가기가 없어 fail-closed로
+          제외한다. construction·smoothness·ford는 근거 없이 일괄 제외하지
+          않는다.
+        </p>
+        <p>
+          <strong>최소 수정·테스트:</strong> 판정을 단일 모듈로 통합하고 제외
+          ID를 객체 확장 전에 필터링했다. compiler 경계 테스트, 구 manifest
+          거부, 캐시 타일 제거, 실제 812개 타일 전체 검사를 추가했다.
+        </p>
+      </section>
+
+      <section class="finding">
+        <span class="badge">Medium</span
+        ><span class="badge fixed">수정 완료</span>
+        <h3>2. 제한 게이트·노드 태그가 유실됨</h3>
+        <p>
+          <strong>위치:</strong> 수정 전
+          <code>010e6e3:scripts/build-seoul-tiles.mjs:222-225, 258-264</code>.
+          현재 노드 판정은 <code>walkability.mjs:162-173</code>, 그래프 차단은
+          <code>graph.ts:77-87</code>.
+        </p>
+        <p>
+          <strong>조건·경로:</strong> 공개 way 중간 노드에 access·foot 제한이나
+          <code>locked=yes</code>가 있으면 된다. 수정 전 생성기는 좌표만 남겨
+          A*가 잠긴 문을 연결점으로 쓸 수 있었다.
+        </p>
+        <p>
+          <strong>근거:</strong> 제한 노드 123개가 기존 후보 way 144개에서 150회
+          참조됐다. 제한 way 제거 뒤 사용되는 114개를 manifest에 기록하고 양쪽
+          세그먼트를 생략한다.
+        </p>
+        <p>
+          <strong>오탐:</strong> gate·bollard만으로 차단하지 않는다. 구체
+          제한이나 잠금이 필요하며 <code>foot=permissive</code>는 일반 access
+          제한을 덮어쓴다.
+        </p>
+        <p>
+          <strong>최소 수정·테스트:</strong> 전체 노드 태그 대신 실제 참조 차단
+          ID만 전달한다. 노드 판정, 그래프 세그먼트 제거, 실제 산출물 참조
+          검사를 추가했다.
+        </p>
+      </section>
+
+      <section class="finding">
+        <span class="badge">Medium</span
+        ><span class="badge fixed">수정 완료</span>
+        <h3>3. 보행·에스컬레이터 방향을 무시함</h3>
+        <p>
+          <strong>위치:</strong> 수정 전
+          <code>010e6e3:src/domain/routing/types.ts:30-40</code>,
+          <code>router.ts:131-147</code>. 현재 판정은
+          <code>walkability.mjs:79-113</code>, A* 강제는
+          <code>router.ts:131-140</code>.
+        </p>
+        <p>
+          <strong>조건·경로:</strong> 방향 태그가 있는 way가 경로에 포함되면
+          수정 전 A*는 두 방향 모두 이동했다.
+        </p>
+        <p>
+          <strong>근거:</strong> PBF에는 forward 6개, backward 1개
+          에스컬레이터가 있다. 실패 테스트에서 두 역방향 경로가 모두 생성됐다.
+        </p>
+        <p>
+          <strong>오탐:</strong> 차량용 <code>oneway=yes</code> 10,855개는
+          보행에 적용하지 않는다. 방향을 확정할 수 없는
+          <code>conveying=yes</code> 49개와 reversible 1개는 제외한다.
+        </p>
+        <p>
+          <strong>최소 수정·테스트:</strong> forward/backward만 정책으로
+          전달하고 A*에서 강제한다. 정·역방향과 간선 분할 후 방향 보존을
+          검증한다.
+        </p>
+      </section>
+
+      <section class="finding">
+        <span class="badge">Medium</span
+        ><span class="badge fixed">수정 완료</span>
+        <h3>4. 빠른길이 fallback 비용을 무시함</h3>
+        <p>
+          <strong>위치:</strong> 수정 전
+          <code
+            >010e6e3:src/domain/routing/routeService.ts:146-154, 194-203</code
+          >. 현재 공통 비용은 <code>safetyPolicy.ts:1</code>,
+          <code>routeService.ts:146-172, 194-206</code>, 스냅은
+          <code>graph.ts:239-273</code>.
+        </p>
+        <p>
+          <strong>조건·경로:</strong> 더 짧은 fallback 도로와 약간 긴 보행
+          우회로가 함께 있으면 수정 전 미리보기·컴포넌트 선택·스냅·빠른길이 서로
+          다른 비용을 써 차도 인접 경로를 우선할 수 있었다.
+        </p>
+        <p>
+          <strong>근거:</strong> 현재 fallback way는 11,157개다. 합성 재현에서
+          수정 전 빠른길과 컴포넌트 선택은 fallback 직선을 선택했다.
+        </p>
+        <p>
+          <strong>오탐:</strong> fallback은 통행 금지가 아니다. non-fallback을
+          무조건 우선하면 먼 직선 connector가 생기므로 스냅에도 동일한 1.5배
+          유한 비용을 쓴다. sidewalk=separate 간선도로 261개는 완전히 제외했다.
+        </p>
+        <p>
+          <strong>최소 수정·테스트:</strong> 스냅, 컴포넌트 선택, 미리보기와 세
+          경로가 같은 multiplier를 쓴다. 안전 우회로, 분리 컴포넌트, 가까운
+          fallback 경계를 검증한다.
+        </p>
+      </section>
+
+      <section class="finding">
+        <span class="badge">Medium</span><span class="badge">후속 필요</span>
+        <h3>남은 발견. endpoint connector는 접근 통제를 검증하지 않음</h3>
+        <p>
+          <strong>위치:</strong>
+          <code>src/domain/routing/routeService.ts:65-113, 128-142</code>.
+        </p>
+        <p>
+          <strong>조건·경로:</strong> 제한 구역 안 POI·주소가 선택되고 공개
+          그래프가 이름 장소 기준 150m 안에 있으면, 스냅 지점과 목적지를 잇는
+          직선 connector가 사유지나 잠긴 게이트를 가로지를 수 있다.
+        </p>
+        <p>
+          <strong>근거:</strong> connector는 두 좌표의 거리만 계산하며 제한 way,
+          barrier, 건물 경계 교차를 검사하지 않는다. 동일 PBF와 장소 인덱스를
+          대조한 결과, 명시 제한 태그가 붙은 검색 장소 36개 모두 방출 보행 노드
+          150m 안에 있었다.
+        </p>
+        <p>
+          <strong>오탐:</strong> 누락된 짧은 진입로나 customers/destination
+          endpoint 접근을 connector가 올바르게 근사할 수 있어 일괄 제거는 정상
+          검색을 깨뜨린다.
+        </p>
+        <p>
+          <strong>최소 수정·테스트:</strong> 제외 geometry, barrier, endpoint
+          등급을 스냅까지 보존한 뒤 private/no 교차, 공개 출입구, 고객 접근
+          예외를 통합 테스트해야 한다.
+        </p>
+      </section>
+
+      <h2>서울 데이터 결과</h2>
+      <div class="grid">
+        <div class="metric"><strong>812</strong><span>타일</span></div>
+        <div class="metric">
+          <strong>115,236</strong><span>unique way</span>
+        </div>
+        <div class="metric"><strong>2,073</strong><span>제외 way</span></div>
+        <div class="metric">
+          <strong>114 / 7</strong><span>차단 노드 / 방향 way</span>
+        </div>
+      </div>
+      <table>
+        <tbody>
+          <tr>
+            <th>타일 총 크기</th>
+            <td>57,282,527 bytes</td>
+          </tr>
+          <tr>
+            <th>최대 타일</th>
+            <td>451,254 bytes</td>
+          </tr>
+          <tr>
+            <th>manifest</th>
+            <td>256,505 bytes</td>
+          </tr>
+          <tr>
+            <th>fallback way</th>
+            <td>11,157개</td>
+          </tr>
+          <tr>
+            <th>변경 타일</th>
+            <td>144개</td>
+          </tr>
+          <tr>
+            <th>제거 / 추가 unique way</th>
+            <td>170 / 1개</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <section class="note">
+        <h3>입력 provenance</h3>
+        <p>
+          <code>/private/tmp/south-korea-latest.osm.pbf</code> · 282,641,335
+          bytes · 2026-07-11 19:00:42 +0900
+        </p>
+        <p>
+          SHA-256
+          <code
+            >828c27e48293061e4187b068052f711c9926837f3b85c4245e95e052f35c4e77</code
+          >. 다운로드 URL과 실제 다운로드 시각은 확인할 수 없어 파일 해시로 이번
+          입력만 고정했다.
+        </p>
+      </section>
+
+      <h2>호환성·성능</h2>
+      <ul>
+        <li>
+          타일 schema 2는 유지하고 정책은 약 256KB manifest에 넣어 추가 요청을
+          만들지 않는다.
+        </li>
+        <li>
+          구 런타임은 manifest schema 2를 거부해 정책을 무시한 실행을 막는다.
+        </li>
+        <li>
+          정책 배열은 종류별 최대 20,000개, 정렬·중복·양의 정수·방향 값을
+          검증한다.
+        </li>
+        <li>
+          구 캐시 타일은 파일당 2MB, 실제 경로 합계 12MB 안에서 읽고 새
+          제외·fallback 정책을 덮어쓴다.
+        </li>
+        <li>
+          Set/Map ID 조회는 평균 O(1), A*에는 edge당 방향 분기 하나가 추가된다.
+        </li>
+      </ul>
+
+      <h2>검증과 남은 위험</h2>
+      <ul>
+        <li>최초 실패 테스트 7건으로 제한 접근과 역방향 이동을 재현했다.</li>
+        <li>
+          PR 2 집중 테스트 39개, 서울 대표 경로 11개, 812개 타일 전체 정책 검사,
+          타입 검사, ESLint를 통과했다.
+        </li>
+        <li>
+          전체 32개 파일, 191개 테스트와 앱인토스 빌드를 통과했다. 커버리지는
+          문장 87.50%, 분기 83.60%, 함수 92.87%, 라인 91.42%다.
+        </li>
+        <li>
+          <code>shade-route.ait</code>는 23,069,840 bytes다. minified JS
+          1,476.76KB의 기존 청크 경고는 남아 있다.
+        </li>
+        <li>
+          conditional과 가변 에스컬레이터는 실시간 평가하지 않고 제외한다.
+        </li>
+        <li>OSM과 현장이 다를 수 있으므로 사용자 안내를 유지한다.</li>
+        <li>
+          endpoint connector의 접근 통제 교차 검사는 후속 접근 모델에 남아 있다.
+        </li>
+        <li>
+          가장 가까운 edge가 역방향이면 같은 weak component의 두 번째 스냅
+          후보를 탐색하지 않아 <code>SNAP_FAILED</code>로 안전하게 종료될 수
+          있다.
+        </li>
+        <li>manifest·타일 무결성과 부분 업데이트 방지는 PR 3에서 다룬다.</li>
+      </ul>
+
+      <h2>OSM 근거</h2>
+      <ul>
+        <li><a href="https://wiki.openstreetmap.org/wiki/Access">Access</a></li>
+        <li>
+          <a href="https://wiki.openstreetmap.org/wiki/Conditional_restrictions"
+            >Conditional restrictions</a
+          >
+        </li>
+        <li>
+          <a href="https://wiki.openstreetmap.org/wiki/Key%3Aoneway%3Afoot"
+            >oneway:foot</a
+          >
+        </li>
+        <li>
+          <a href="https://wiki.openstreetmap.org/wiki/Key%3Aconveying"
+            >conveying</a
+          >
+        </li>
+        <li>
+          <a href="https://wiki.openstreetmap.org/wiki/Sidewalk">Sidewalk</a>
+        </li>
+        <li>
+          <a
+            href="https://wiki.openstreetmap.org/wiki/Compulsory_use_of_parallel_way"
+            >foot=use_sidepath</a
+          >
+        </li>
+      </ul>
+    </main>
+  </body>
+</html>

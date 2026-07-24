@@ -25,6 +25,16 @@ export interface OverpassData {
 export interface CorridorData {
   readonly ways: OverpassData;
   readonly buildings: OverpassData;
+  readonly walkingPolicy?: WalkingPolicy;
+}
+
+export type DirectedWalk = "forward" | "backward";
+
+export interface WalkingPolicy {
+  readonly excludedWayIds: ReadonlySet<number>;
+  readonly blockedNodeIds: ReadonlySet<number>;
+  readonly fallbackWayIds: ReadonlySet<number>;
+  readonly wayDirections: ReadonlyMap<number, DirectedWalk>;
 }
 
 export interface Edge {
@@ -36,6 +46,7 @@ export interface Edge {
   readonly steps: boolean;
   readonly wayId: number;
   readonly fallbackRoad?: boolean;
+  readonly walkDirection?: DirectedWalk;
   readonly virtual?: boolean;
 }
 

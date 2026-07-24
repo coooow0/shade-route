@@ -13,16 +13,13 @@ import {
   requestCurrentLocationPermission,
   resolveCurrentPlace,
 } from "./domain/location/currentLocation";
-import { calculateRouteBundleForPlaces } from "./domain/routing/routeService";
+import { calculateRouteBundleForPlaces } from "./domain/routing/routeWorkerClient";
 import { loadCurrentWeather } from "./domain/weather/currentWeather";
 import type { RouteBundle, RouteResult } from "./domain/routing/types";
 
-vi.mock("./domain/routing/routeService", async () => {
-  const actual = await vi.importActual<
-    typeof import("./domain/routing/routeService")
-  >("./domain/routing/routeService");
-  return { ...actual, calculateRouteBundleForPlaces: vi.fn() };
-});
+vi.mock("./domain/routing/routeWorkerClient", () => ({
+  calculateRouteBundleForPlaces: vi.fn(),
+}));
 
 vi.mock("./domain/location/currentLocation", async () => {
   const actual = await vi.importActual<
@@ -246,11 +243,14 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
 
     await screen.findByRole("heading", { name: "경로 비교" });
-    expect(mockedCalculate).toHaveBeenCalledWith({
-      start: expect.objectContaining({ id: "gangnam-11" }),
-      goal: tossPlace,
-      offsetMinutes: 0,
-    });
+    expect(mockedCalculate).toHaveBeenCalledWith(
+      {
+        start: expect.objectContaining({ id: "gangnam-11" }),
+        goal: tossPlace,
+        offsetMinutes: 0,
+      },
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
   });
 
   it("explains and retries a failed Seoul station index", async () => {
@@ -294,11 +294,14 @@ describe("App", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
     await screen.findByRole("heading", { name: "경로 비교" });
-    expect(mockedCalculate).toHaveBeenCalledWith({
-      start: currentPlace,
-      goal: bundle.goal,
-      offsetMinutes: 0,
-    });
+    expect(mockedCalculate).toHaveBeenCalledWith(
+      {
+        start: currentPlace,
+        goal: bundle.goal,
+        offsetMinutes: 0,
+      },
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
   });
 
   it("discards cached coordinates when the user returns to a preset", async () => {
@@ -499,6 +502,66 @@ describe("App", () => {
     });
     expect(
       await screen.findByRole("heading", { name: "경로 비교" }),
+    ).toBeInTheDocument();
+  });
+
+  it("aborts an active route worker when the app unmounts", async () => {
+    let routeSignal: AbortSignal | undefined;
+    mockedCalculate.mockImplementation(
+      (_request, options) =>
+        new Promise<RouteBundle>(() => {
+          routeSignal = options?.signal;
+        }),
+    );
+    const { unmount } = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
+    await waitFor(() => expect(routeSignal).toBeInstanceOf(AbortSignal));
+
+    unmount();
+
+    expect(routeSignal?.aborted).toBe(true);
+  });
+
+  it("aborts an active route worker when the WebView is hidden", async () => {
+    let routeSignal: AbortSignal | undefined;
+    mockedCalculate.mockImplementation(
+      (_request, options) =>
+        new Promise<RouteBundle>(() => {
+          routeSignal = options?.signal;
+        }),
+    );
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
+    await waitFor(() => expect(routeSignal).toBeInstanceOf(AbortSignal));
+
+    act(() => window.dispatchEvent(new Event("pagehide")));
+
+    expect(routeSignal?.aborted).toBe(true);
+    expect(
+      screen.getByRole("button", { name: "그늘 경로 찾기" }),
+    ).toBeEnabled();
+  });
+
+  it("keeps a completed route visible when the WebView is hidden", async () => {
+    mockedCalculate.mockResolvedValue(bundle);
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
+    await screen.findByRole("heading", { name: "경로 비교" });
+
+    act(() => window.dispatchEvent(new Event("pagehide")));
+
+    expect(
+      screen.getByRole("heading", { name: "경로 비교" }),
+    ).toBeInTheDocument();
+
+    const visibilityState = vi
+      .spyOn(document, "visibilityState", "get")
+      .mockReturnValue("hidden");
+    act(() => document.dispatchEvent(new Event("visibilitychange")));
+    visibilityState.mockRestore();
+
+    expect(
+      screen.getByRole("heading", { name: "경로 비교" }),
     ).toBeInTheDocument();
   });
 

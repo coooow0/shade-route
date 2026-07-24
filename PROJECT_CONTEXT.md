@@ -12,7 +12,7 @@
 - 주요 사용자: 여름철 서울에서 3km 이내를 걷는 사람
 - 핵심 가치: 빠른길보다 얼마나 더 걸리고 햇빛을 얼마나 덜 받는지 알려준다.
 - 현재 범위: 서울 전역, 경로 길이 3km 이내
-- 프로젝트 위치: `/Users/coooow0/Documents/그늘길/shade-route`
+- 프로젝트 위치: 저장소 루트
 
 ## 해결하려는 문제
 
@@ -145,7 +145,7 @@
 - 목적지가 보행 그래프에서 멀거나 서울 밖이면 경로를 만들지 못할 수 있다.
 - `서울 전역`은 서울 전체의 전처리 데이터를 포함한다는 뜻이다. 모든 서울 좌표에서 검색과 경로 생성을 보장하지 않는다.
 - 3km를 넘는 경로는 지원하지 않는다.
-- Vite 프로덕션 JS 번들은 약 1.47MB, gzip 약 469KB이며 청크 크기 경고가 남아 있다.
+- Vite 프로덕션 main JS 번들은 약 1.46MB, gzip 약 463KB이고, 경로 계산은 약 69KB의 별도 module Worker 청크로 분리된다. main 청크의 500kB 권장 크기 경고는 남아 있다.
 
 사용자 화면에는 실제 현장과 다를 수 있다는 안내를 유지한다. 정확도를 과장하는 표현은 쓰지 않는다.
 
@@ -189,6 +189,29 @@
 - 상한은 2026-07 서울 데이터 812개 타일의 실측값을 기준으로 한다. 데이터 갱신 때 실측값, 상한, 경계값 테스트를 함께 재검토한다.
 - 세부 근거와 남은 위험은 [`docs/security/pr1-webview-resource-hardening.md`](./docs/security/pr1-webview-resource-hardening.md)에 기록한다.
 
+### OSM 보행 안전 정책
+
+- 생성기와 앱 런타임은 `src/domain/routing/walkability.mjs`의 보행 판정을 함께 사용한다.
+- 구체적인 `foot=*`를 일반 `access=*`보다 우선하며, 공개 보행은 `yes`, `designated`, `permissive`만 허용한다.
+- conditional 접근, 폐기 way, 고난도 산길, 방향 불명 에스컬레이터는 시간·상태 평가기가 없으므로 제외한다.
+- manifest schema 3가 제외 way, 차단 노드, fallback way, 보행 방향, 아티팩트 해시와 provenance를 필수로 전달한다. 구 manifest는 fail-closed로 거부한다.
+- 차단 노드에 닿는 세그먼트는 그래프에서 만들지 않고, A*는 명시적인 보행·에스컬레이터 방향을 강제한다.
+- fallback 도로는 스냅, 컴포넌트 선택, 모든 경로 모드에서 같은 1.5배 비용을 사용한다. 보행 공간 없이 `sidewalk=separate`만 있는 간선도로는 제외한다.
+- 2026-07-15 재생성 결과는 타일 812개, unique way 115,236개, 제외 way 2,073개, 차단 노드 114개, fallback way 11,157개, 방향 way 7개다.
+- 출발지·목적지와 스냅 지점을 잇는 최대 100m·150m connector는 아직 제한 geometry와의 교차를 검사하지 않는다. endpoint 접근 등급과 공개 출입구 모델을 후속 보안 작업으로 남긴다.
+- 가장 가까운 edge가 명시적 보행 방향과 반대면 같은 연결 요소의 다음 스냅 후보를 탐색하지 않아 경로가 안전하게 실패할 수 있다. 검색 성공률 개선 때 방향 인식 다중 스냅을 검토한다.
+- 세부 근거와 남은 위험은 [`docs/security/pr2-osm-pedestrian-semantics.md`](./docs/security/pr2-osm-pedestrian-semantics.md)에 기록한다.
+
+### 데이터 무결성과 경로 Worker
+
+- 앱 번들의 generated integrity root가 manifest와 장소 인덱스 SHA-256을 직접 고정하고, manifest가 812개 타일·장소·public 경계 아티팩트의 정확한 바이트와 release ID를 고정한다.
+- 로더는 manifest, 선택한 개별 타일, 장소 인덱스를 JSON 파싱 전에 Web Crypto SHA-256으로 검증한다. 변조·부분 배포·스테일 캐시가 섞이면 경로를 만들지 않고 fail-closed로 종료한다.
+- `npm run data:seoul`은 원본 PBF 출처 메타데이터, 파일 크기, SHA-256과 런타임 서울 경계를 같은 실행에서 생성한다. `npm run data:verify`는 공유 manifest schema로 파일 집합·크기·해시·release ID를 전수 검증하고 원본 경계와 런타임 TypeScript의 drift도 거부하며, `npm run build`의 prebuild에서 자동 실행된다.
+- 경로 데이터 fetch·decode·그래프·그늘·A* 작업은 요청당 module Web Worker에서 실행한다. 30초 제한, 재검색 무효화, unmount, `pagehide`, 문서 hidden에서 Worker를 종료한다.
+- Worker 입력·출력은 별도 schema·수량 검증을 거친다. 허용한 도메인 오류 코드만 UI로 전달하고 예외 상세는 숨긴다.
+- 앱인토스 iOS/Android 실기기의 module Worker·Web Crypto 호환성은 샌드박스에서 확인해야 한다. 미지원 환경에서 무결성 검증을 생략하는 fallback은 두지 않았다.
+- 세부 근거와 남은 위험은 [`docs/security/pr3-artifact-integrity-worker.md`](./docs/security/pr3-artifact-integrity-worker.md)에 기록한다.
+
 ## 실행과 검증
 
 프로젝트 루트에서 실행한다.
@@ -200,6 +223,7 @@ npm run dev
 전체 검증:
 
 ```bash
+npm run data:verify
 npm run test:coverage
 npm run typecheck
 npm run lint
@@ -212,18 +236,19 @@ npm run build
 npm run data:seoul
 ```
 
-현재 문서에는 사용한 OSM PBF의 다운로드 날짜와 스냅샷 버전이 남아 있지 않다. 다음 데이터 갱신 때 원본 URL, 다운로드 날짜, 파일 해시를 함께 기록한다.
+2026-07-15 서울 데이터는 `/private/tmp/south-korea-latest.osm.pbf`를 사용했다. 파일 크기는 282,641,335 bytes, 수정 시각은 2026-07-11 19:00:42 +0900, SHA-256은 `828c27e48293061e4187b068052f711c9926837f3b85c4245e95e052f35c4e77`이다. 다운로드 URL과 실제 다운로드 시각은 확인할 수 없어 다음 데이터 갱신부터 함께 기록한다.
 
-이 디렉터리는 `main` 브랜치를 기본으로 쓰는 Git 저장소이며, 비공개 GitHub 저장소 `coooow0/shade-route`를 `origin`으로 연결한다. 빌드 산출물, 커버리지, `node_modules`, 앱인토스 `.ait` 파일은 커밋하지 않는다.
+이 디렉터리는 `main` 브랜치를 기본으로 쓰는 Git 저장소이며, GitHub 저장소 `coooow0/shade-route`를 `origin`으로 연결한다. 빌드 산출물, 커버리지, `node_modules`, 앱인토스 `.ait` 파일은 커밋하지 않는다. 공개 전환 전에는 [`docs/public-release-checklist.md`](./docs/public-release-checklist.md)를 확인한다.
 
-2026년 7월 15일 마지막 전체 검증 결과:
+2026년 7월 15일 PR 3 마지막 로컬 검증 결과:
 
-- 테스트 170개 통과
-- 문장 커버리지 87.47%, 분기 커버리지 82.86%, 함수 커버리지 92.76%, 라인 커버리지 91.53%
+- 37개 파일, 테스트 229개 통과
+- 문장 커버리지 87.01%, 분기 커버리지 83.38%, 함수 커버리지 92.28%, 라인 커버리지 90.78%
+- manifest, places, public·runtime boundary, 서울 타일 812개 아티팩트 무결성·drift 전수 검증 통과
 - 타입 검사와 ESLint 통과
 - 앱인토스 `.ait` 빌드 통과
-- `shade-route.ait` 약 22MB
-- minified 웹 JavaScript 약 1.47MB로 500kB 권장 크기 초과 경고가 있다. 실기기 초기 로드 측정 후 코드 분할을 후속 검토한다.
+- `shade-route.ait` 23,125,319 bytes
+- main minified JavaScript 1,456.65KB, gzip 462.95KB와 별도 route Worker 69.42KB를 생성했다. main 청크의 500kB 권장 크기 초과 경고는 남아 있다.
 
 2026년 7월 13일 실기기 화면 검증 결과:
 

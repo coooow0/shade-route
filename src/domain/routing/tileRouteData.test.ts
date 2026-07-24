@@ -6,20 +6,63 @@ import {
 } from "./tileRouteData";
 import { ROUTE_RESOURCE_LIMITS } from "./resourceLimits";
 
+const HASH = "0".repeat(64);
+const TEST_INTEGRITY = vi.hoisted(() => ({
+  schema: 1 as const,
+  releaseId: "0".repeat(24),
+  manifestSha256: "0".repeat(64),
+  placesSha256: "0".repeat(64),
+}));
+
+vi.mock("../../data/seoulArtifactIntegrity.mjs", () => ({
+  SEOUL_ARTIFACT_INTEGRITY: TEST_INTEGRITY,
+}));
+vi.mock("../data/integrity", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../data/integrity")>();
+  return { ...actual, assertSha256Integrity: vi.fn() };
+});
+
 const manifest: TileManifest = {
-  schema: 1,
+  schema: 3,
+  releaseId: TEST_INTEGRITY.releaseId,
   zoom: 15,
   coverage: { south: 37.49, west: 127.02, north: 37.5, east: 127.04 },
+  source: {
+    schema: 1,
+    fileName: "south-korea-latest.osm.pbf",
+    bytes: 1,
+    sha256: HASH,
+    observedModifiedAt: "2026-07-11T10:00:42.000Z",
+    downloadUrl: null,
+    downloadedAt: null,
+  },
+  generator: {
+    schema: 3,
+    script: "scripts/build-seoul-tiles.mjs",
+  },
+  artifacts: {
+    places: { path: "places.json", bytes: 1, sha256: HASH },
+    boundary: { path: "boundary.json", bytes: 1, sha256: HASH },
+  },
+  walkingPolicy: {
+    schema: 1,
+    excludedWayIds: [],
+    blockedNodeIds: [],
+    fallbackWayIds: [],
+    directions: [],
+  },
   tiles: [
     {
       id: "15-27943-12699",
       bounds: { south: 37.49, west: 127.02, north: 37.5, east: 127.03 },
       bytes: 500,
+      sha256: HASH,
     },
     {
       id: "15-27944-12699",
       bounds: { south: 37.49, west: 127.03, north: 37.5, east: 127.04 },
       bytes: 500,
+      sha256: HASH,
     },
   ],
 };
@@ -133,6 +176,165 @@ describe("tiled route data", () => {
       10, 11,
     ]);
     expect(fetcher).toHaveBeenCalledTimes(3);
+  });
+
+  it("filters cached restricted ways and exposes validated graph policy", async () => {
+    const policyManifest: TileManifest = {
+      ...manifest,
+      walkingPolicy: {
+        schema: 1,
+        excludedWayIds: [1],
+        blockedNodeIds: [21],
+        fallbackWayIds: [2],
+        directions: [[2, -1]],
+      },
+    };
+    const fetcher = vi.fn<typeof fetch>((input) =>
+      Promise.resolve(
+        String(input).endsWith("manifest.json")
+          ? response(policyManifest)
+          : response({
+              schema: 2,
+              id: String(input).includes("27943")
+                ? "15-27943-12699"
+                : "15-27944-12699",
+              w: [
+                compactWay(1, 127.025, 127.03),
+                compactWay(2, 127.03, 127.035),
+              ],
+              b: [],
+            }),
+      ),
+    );
+
+    const data = await loadTiledRouteData(
+      { lat: 37.495, lon: 127.025 },
+      { lat: 37.495, lon: 127.035 },
+      fetcher,
+      "/",
+      0,
+    );
+
+    expect(data.ways.elements.map((element) => element.id)).toEqual([2]);
+    expect(data.walkingPolicy?.excludedWayIds.has(1)).toBe(true);
+    expect(data.walkingPolicy?.blockedNodeIds.has(21)).toBe(true);
+    expect(data.walkingPolicy?.fallbackWayIds.has(2)).toBe(true);
+    expect(data.walkingPolicy?.wayDirections.get(2)).toBe("backward");
+    expect(data.ways.elements[0].tags?.["shade-route:fallback"]).toBe("yes");
+  });
+
+  it("accepts a larger cached tile and overlays its new safety flags", async () => {
+    const cachedManifest: TileManifest = {
+      ...manifest,
+      tiles: [{ ...manifest.tiles[0], bytes: 100 }],
+      walkingPolicy: {
+        ...manifest.walkingPolicy,
+        excludedWayIds: [1],
+        fallbackWayIds: [2],
+      },
+    };
+    const cachedTile = JSON.stringify({
+      schema: 2,
+      id: "15-27943-12699",
+      w: [compactWay(1, 127.025, 127.026), compactWay(2, 127.025, 127.026)],
+      b: [],
+    });
+    const fetcher = vi.fn<typeof fetch>((input) =>
+      Promise.resolve(
+        String(input).endsWith("manifest.json")
+          ? response(cachedManifest)
+          : new Response(`${cachedTile}${" ".repeat(2_000)}`),
+      ),
+    );
+
+    const data = await loadTiledRouteData(
+      { lat: 37.495, lon: 127.025 },
+      { lat: 37.495, lon: 127.026 },
+      fetcher,
+      "/",
+      0,
+    );
+
+    expect(data.ways.elements.map((element) => element.id)).toEqual([2]);
+    expect(data.ways.elements[0].tags?.["shade-route:fallback"]).toBe("yes");
+  });
+
+  it("enforces the aggregate byte limit on larger cached tiles", async () => {
+    const cachedManifest: TileManifest = {
+      ...manifest,
+      tiles: Array.from({ length: 7 }, (_, index) => ({
+        id: `15-${27_943 + index}-12699`,
+        bounds: manifest.tiles[0].bounds,
+        bytes: 100,
+        sha256: HASH,
+      })),
+    };
+    const fetcher = vi.fn<typeof fetch>((input) => {
+      const url = String(input);
+      if (url.endsWith("manifest.json")) {
+        return Promise.resolve(response(cachedManifest));
+      }
+      const id = url.match(/(15-\d+-12699)\.json$/)?.[1];
+      return Promise.resolve(
+        new Response(
+          `${JSON.stringify({ schema: 2, id, w: [], b: [] })}${" ".repeat(1_800_000)}`,
+        ),
+      );
+    });
+
+    await expect(
+      loadTiledRouteData(
+        { lat: 37.495, lon: 127.025 },
+        { lat: 37.495, lon: 127.026 },
+        fetcher,
+        "/",
+        0,
+      ),
+    ).rejects.toThrow("ROUTE_TOO_LARGE");
+  });
+
+  it("rejects legacy manifests without mandatory walking policy", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      response({
+        ...manifest,
+        schema: 1,
+        walkingPolicy: undefined,
+      }),
+    );
+
+    await expect(
+      loadTiledRouteData(
+        { lat: 37.495, lon: 127.025 },
+        { lat: 37.495, lon: 127.026 },
+        fetcher,
+        "/",
+        0,
+      ),
+    ).rejects.toThrow("INVALID_TILE_MANIFEST");
+    expect(fetcher).toHaveBeenCalledOnce();
+  });
+
+  it("rejects unsorted or duplicated walking policy ids", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
+      response({
+        ...manifest,
+        walkingPolicy: {
+          ...manifest.walkingPolicy,
+          excludedWayIds: [2, 1, 1],
+        },
+      }),
+    );
+
+    await expect(
+      loadTiledRouteData(
+        { lat: 37.495, lon: 127.025 },
+        { lat: 37.495, lon: 127.026 },
+        fetcher,
+        "/",
+        0,
+      ),
+    ).rejects.toThrow("INVALID_TILE_MANIFEST");
+    expect(fetcher).toHaveBeenCalledOnce();
   });
 
   it("validates and expands compact Seoul tiles", async () => {

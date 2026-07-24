@@ -1,0 +1,1 @@
+export const FALLBACK_ROAD_MULTIPLIER = 1.5;

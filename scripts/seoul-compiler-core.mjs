@@ -1,23 +1,10 @@
-const WALKABLE = new Set([
-  "footway",
-  "pedestrian",
-  "path",
-  "steps",
-  "living_street",
-  "residential",
-  "service",
-  "corridor",
-  "track",
-  "unclassified",
-]);
-const CONDITIONAL_ROADS = new Set([
-  "tertiary",
-  "tertiary_link",
-  "secondary",
-  "secondary_link",
-  "primary",
-  "primary_link",
-]);
+export {
+  isBlockedWalkingNode,
+  isFallbackRoad,
+  isSupportedWalkingTags,
+  isWalkableTags,
+  walkDirectionFromTags,
+} from "../src/domain/routing/walkability.mjs";
 
 const FOOD_AMENITIES = new Set([
   "bar",
@@ -102,8 +89,7 @@ export function placeKindFromTags(tags = {}) {
 export function limitPlacesByKind(places, { limits, maximum }) {
   if (!Number.isInteger(maximum) || maximum <= 0) return [];
   const ordered = [...places].sort(
-    (a, b) =>
-      a.name.localeCompare(b.name, "ko") || a.id.localeCompare(b.id),
+    (a, b) => a.name.localeCompare(b.name, "ko") || a.id.localeCompare(b.id),
   );
   const counts = new Map();
   const selected = [];
@@ -118,73 +104,14 @@ export function limitPlacesByKind(places, { limits, maximum }) {
       overflow.push(place);
     }
   }
-  return [...selected, ...overflow.slice(0, Math.max(0, maximum - selected.length))]
+  return [
+    ...selected,
+    ...overflow.slice(0, Math.max(0, maximum - selected.length)),
+  ]
     .slice(0, maximum)
     .sort(
-      (a, b) =>
-        a.name.localeCompare(b.name, "ko") || a.id.localeCompare(b.id),
+      (a, b) => a.name.localeCompare(b.name, "ko") || a.id.localeCompare(b.id),
     );
-}
-
-export function isWalkableTags(tags = {}) {
-  const pedestrianSpace =
-    tags.foot === "yes" ||
-    tags.foot === "designated" ||
-    [
-      tags.sidewalk,
-      tags["sidewalk:left"],
-      tags["sidewalk:right"],
-      tags["sidewalk:both"],
-    ].some(
-      (value) =>
-        value !== undefined &&
-        value !== "no" &&
-        value !== "none" &&
-        value !== "separate",
-    );
-  const sidewalkValues = [
-    tags.sidewalk,
-    tags["sidewalk:left"],
-    tags["sidewalk:right"],
-    tags["sidewalk:both"],
-  ];
-  const explicitlyUnsafeRoad =
-    CONDITIONAL_ROADS.has(tags.highway ?? "") &&
-    !pedestrianSpace &&
-    sidewalkValues.some((value) =>
-      ["no", "none", "separate"].includes(value),
-    );
-  const supported =
-    WALKABLE.has(tags.highway ?? "") ||
-    CONDITIONAL_ROADS.has(tags.highway ?? "");
-  if (!supported || tags.foot === "no") return false;
-  if (tags.motorroad === "yes") return false;
-  if (explicitlyUnsafeRoad) return false;
-  return !(
-    (tags.access === "private" || tags.access === "no") &&
-    tags.foot !== "yes" &&
-    tags.foot !== "designated"
-  );
-}
-
-export function isFallbackRoad(tags = {}) {
-  if (!CONDITIONAL_ROADS.has(tags.highway ?? "")) return false;
-  return !(
-    tags.foot === "yes" ||
-    tags.foot === "designated" ||
-    [
-      tags.sidewalk,
-      tags["sidewalk:left"],
-      tags["sidewalk:right"],
-      tags["sidewalk:both"],
-    ].some(
-      (value) =>
-        value !== undefined &&
-        value !== "no" &&
-        value !== "none" &&
-        value !== "separate",
-    )
-  );
 }
 
 export function pointInRing([lon, lat], ring) {

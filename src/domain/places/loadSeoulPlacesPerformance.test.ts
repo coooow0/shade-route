@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { sha256Hex } from "../data/integrity";
 
 const isWithinSeoul = vi.hoisted(() =>
   vi.fn(
@@ -17,25 +18,26 @@ describe("place boundary validation work", () => {
   });
 
   it("checks the exact compiled coordinate before tolerance probes", async () => {
+    const body = JSON.stringify({
+      schema: 2,
+      places: [
+        {
+          id: "osm-node-1",
+          name: "서울 장소",
+          aliases: [],
+          kind: "landmark",
+          lat: 37.5,
+          lon: 127,
+        },
+      ],
+    });
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          schema: 2,
-          places: [
-            {
-              id: "osm-node-1",
-              name: "서울 장소",
-              aliases: [],
-              kind: "landmark",
-              lat: 37.5,
-              lon: 127,
-            },
-          ],
-        }),
-      ),
+      new Response(body),
     );
 
-    await expect(loadSeoulPlaces(fetcher, "/")).resolves.toHaveLength(1);
+    await expect(
+      loadSeoulPlaces(fetcher, "/", await sha256Hex(body)),
+    ).resolves.toHaveLength(1);
     expect(isWithinSeoul).toHaveBeenCalledOnce();
     expect(isWithinSeoul).toHaveBeenCalledWith(37.5, 127);
   });

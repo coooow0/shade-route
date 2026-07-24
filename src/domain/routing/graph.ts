@@ -1,59 +1,8 @@
 import { distance, nearestOnSegment, type Projection } from "./geo";
 import { ROUTE_RESOURCE_LIMITS } from "./resourceLimits";
-import type { Edge, Graph, OverpassData, XY } from "./types";
-
-const WALKABLE = new Set([
-  "footway",
-  "pedestrian",
-  "path",
-  "steps",
-  "living_street",
-  "residential",
-  "service",
-  "corridor",
-  "track",
-  "unclassified",
-]);
-const CONDITIONAL_ROADS = new Set([
-  "tertiary",
-  "tertiary_link",
-  "secondary",
-  "secondary_link",
-  "primary",
-  "primary_link",
-]);
-
-function isWalkable(tags: Readonly<Record<string, string | undefined>> = {}) {
-  const highway = tags.highway ?? "";
-  const pedestrianSpace =
-    tags.foot === "yes" ||
-    tags.foot === "designated" ||
-    [
-      tags.sidewalk,
-      tags["sidewalk:left"],
-      tags["sidewalk:right"],
-      tags["sidewalk:both"],
-    ].some(
-      (value) =>
-        value !== undefined &&
-        value !== "no" &&
-        value !== "none" &&
-        value !== "separate",
-    );
-  const supported =
-    WALKABLE.has(highway) ||
-    (CONDITIONAL_ROADS.has(highway) && pedestrianSpace);
-  if (!supported || tags.foot === "no") return false;
-  if (tags.motorroad === "yes") return false;
-  if (
-    (tags.access === "private" || tags.access === "no") &&
-    tags.foot !== "yes" &&
-    tags.foot !== "designated"
-  ) {
-    return false;
-  }
-  return true;
-}
+import { FALLBACK_ROAD_MULTIPLIER } from "./safetyPolicy";
+import type { Edge, Graph, OverpassData, WalkingPolicy, XY } from "./types";
+import { isWalkableTags, walkDirectionFromTags } from "./walkability.mjs";
 
 function isCovered(tags: Readonly<Record<string, string | undefined>> = {}) {
   return (
@@ -100,7 +49,11 @@ function makeAdjacency(
   );
 }
 
-export function buildGraph(data: OverpassData, projection: Projection): Graph {
+export function buildGraph(
+  data: OverpassData,
+  projection: Projection,
+  policy?: WalkingPolicy,
+): Graph {
   const nodes = new Map<number, XY>();
   const edges: Edge[] = [];
   const degrees = new Map<number, number>();
@@ -108,7 +61,17 @@ export function buildGraph(data: OverpassData, projection: Projection): Graph {
 
   for (const element of data.elements) {
     if (element.type !== "way" || !element.geometry || !element.nodes) continue;
-    if (!isWalkable(element.tags)) {
+    if (
+      policy?.excludedWayIds.has(element.id) ||
+      !isWalkableTags(element.tags)
+    ) {
+      skippedWays++;
+      continue;
+    }
+    const walkDirection =
+      policy?.wayDirections.get(element.id) ??
+      walkDirectionFromTags(element.tags);
+    if (walkDirection === null) {
       skippedWays++;
       continue;
     }
@@ -120,6 +83,9 @@ export function buildGraph(data: OverpassData, projection: Projection): Graph {
       if (a === undefined || b === undefined || !geometryA || !geometryB)
         continue;
       if (a === b) continue;
+      if (policy?.blockedNodeIds.has(a) || policy?.blockedNodeIds.has(b)) {
+        continue;
+      }
       const pointA =
         nodes.get(a) ?? projection.toXY(geometryA.lat, geometryA.lon);
       const pointB =
@@ -152,7 +118,10 @@ export function buildGraph(data: OverpassData, projection: Projection): Graph {
         length,
         covered: isCovered(element.tags),
         steps: element.tags?.highway === "steps",
-        fallbackRoad: element.tags?.["shade-route:fallback"] === "yes",
+        fallbackRoad:
+          policy?.fallbackWayIds.has(element.id) === true ||
+          element.tags?.["shade-route:fallback"] === "yes",
+        ...(walkDirection === "both" ? {} : { walkDirection }),
         wayId: element.id,
       });
     }
@@ -264,6 +233,7 @@ interface SnapCandidate {
   readonly point: XY;
   readonly t: number;
   readonly distance: number;
+  readonly cost: number;
 }
 
 export function snapPointsToGraph(
@@ -291,11 +261,11 @@ export function snapPointsToGraph(
       const b = graph.nodes.get(edge.b);
       if (!a || !b) continue;
       const candidate = nearestOnSegment(point, a, b);
-      if (
-        candidate.distance <= pointMaxDistance &&
-        (!best || candidate.distance < best.distance)
-      ) {
-        best = { edge, ...candidate };
+      if (candidate.distance > pointMaxDistance) continue;
+      const cost =
+        candidate.distance * (edge.fallbackRoad ? FALLBACK_ROAD_MULTIPLIER : 1);
+      if (!best || cost < best.cost) {
+        best = { edge, ...candidate, cost };
       }
     }
     if (!best) return;

@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PR 3 보안 요약 — 데이터 무결성과 경로 Worker</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17202a;
+        --muted: #5d6875;
+        --line: #dce3e8;
+        --paper: #fffdf8;
+        --surface: #ffffff;
+        --green: #175f4c;
+        --green-soft: #e9f4ef;
+        --amber: #9a5b00;
+        --amber-soft: #fff2d6;
+        --blue: #1d4f91;
+        --blue-soft: #eaf2ff;
+        --shadow: 0 18px 45px rgba(23, 32, 42, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 10% 0%, #eef7f1 0, transparent 28rem),
+          var(--paper);
+        font-family:
+          Pretendard,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        line-height: 1.65;
+      }
+
+      main {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 56px 0 80px;
+      }
+
+      header,
+      section {
+        margin-bottom: 28px;
+      }
+
+      .hero {
+        padding: 44px;
+        color: #fff;
+        border-radius: 28px;
+        background: linear-gradient(135deg, #153f36, #1c6955 64%, #297c64);
+        box-shadow: var(--shadow);
+      }
+
+      .eyebrow {
+        margin: 0 0 10px;
+        color: #c6ebdc;
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        max-width: 780px;
+        margin-bottom: 14px;
+        font-size: clamp(2rem, 5vw, 4.5rem);
+        line-height: 1.05;
+        letter-spacing: -0.05em;
+      }
+
+      h2 {
+        margin-bottom: 18px;
+        font-size: clamp(1.45rem, 3vw, 2.1rem);
+        letter-spacing: -0.03em;
+      }
+
+      h3 {
+        margin-bottom: 8px;
+        font-size: 1.12rem;
+      }
+
+      .hero p:last-child {
+        max-width: 780px;
+        margin-bottom: 0;
+        color: #e7f5ef;
+        font-size: 1.08rem;
+      }
+
+      .panel {
+        padding: 30px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 10px 26px rgba(23, 32, 42, 0.04);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .finding {
+        padding: 24px;
+        border-radius: 18px;
+        background: #fff;
+        border: 1px solid var(--line);
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        margin-bottom: 14px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+      }
+
+      .medium {
+        color: var(--amber);
+        background: var(--amber-soft);
+      }
+
+      .low {
+        color: var(--blue);
+        background: var(--blue-soft);
+      }
+
+      .closed {
+        color: var(--green);
+        background: var(--green-soft);
+      }
+
+      dl {
+        display: grid;
+        grid-template-columns: 108px 1fr;
+        gap: 10px 16px;
+        margin: 18px 0 0;
+      }
+
+      dt {
+        color: var(--muted);
+        font-weight: 750;
+      }
+
+      dd {
+        margin: 0;
+      }
+
+      code {
+        padding: 0.12rem 0.35rem;
+        border-radius: 6px;
+        background: #eef1f3;
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: 0.86em;
+      }
+
+      .trust {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+        align-items: stretch;
+        gap: 12px;
+      }
+
+      .trust-paths {
+        display: grid;
+        gap: 12px;
+      }
+
+      .trust-path {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
+        align-items: stretch;
+        gap: 12px;
+      }
+
+      .trust-path.direct {
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+
+      .trust-node {
+        display: grid;
+        place-items: center;
+        min-height: 118px;
+        padding: 18px;
+        border: 1px solid #bcd8cd;
+        border-radius: 16px;
+        background: var(--green-soft);
+        text-align: center;
+        font-weight: 800;
+      }
+
+      .arrow {
+        display: grid;
+        place-items: center;
+        color: var(--green);
+        font-size: 1.6rem;
+        font-weight: 900;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      th,
+      td {
+        padding: 13px 14px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        background: #f5f7f8;
+        font-size: 0.85rem;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 1.25rem;
+      }
+
+      li + li {
+        margin-top: 8px;
+      }
+
+      .checks {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .check {
+        padding: 16px;
+        border-radius: 14px;
+        color: var(--green);
+        background: var(--green-soft);
+        font-weight: 760;
+      }
+
+      .note {
+        padding: 18px 20px;
+        border-left: 4px solid var(--amber);
+        border-radius: 8px;
+        background: var(--amber-soft);
+      }
+
+      a {
+        color: var(--blue);
+      }
+
+      footer {
+        padding-top: 8px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      @media (max-width: 760px) {
+        main {
+          width: min(100% - 20px, 1120px);
+          padding-top: 20px;
+        }
+
+        .hero,
+        .panel {
+          padding: 22px;
+          border-radius: 18px;
+        }
+
+        .grid,
+        .checks {
+          grid-template-columns: 1fr;
+        }
+
+        .trust {
+          grid-template-columns: 1fr;
+        }
+
+        .trust-path,
+        .trust-path.direct {
+          grid-template-columns: 1fr;
+        }
+
+        .arrow {
+          transform: rotate(90deg);
+        }
+
+        dl {
+          grid-template-columns: 1fr;
+          gap: 2px;
+        }
+
+        dd + dt {
+          margin-top: 10px;
+        }
+
+        .table-wrap {
+          overflow-x: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="hero">
+        <p class="eyebrow">Shade Route Security / PR 3</p>
+        <h1>데이터를 묶고,<br />경로 계산을 분리했다</h1>
+        <p>
+          서울 manifest·타일·장소 인덱스의 정확한 바이트를 SHA-256으로 결합했다.
+          데이터 로드부터 A* 탐색까지는 취소 가능한 module Web Worker에서
+          실행한다.
+        </p>
+      </header>
+
+      <section class="panel" aria-labelledby="findings">
+        <h2 id="findings">처리한 발견 사항</h2>
+        <div class="grid">
+          <article class="finding">
+            <span class="badge medium">DSC-040 · MEDIUM</span>
+            <h3>버전이 섞인 정적 경로 데이터 수용</h3>
+            <p>
+              수정 전에는 새 manifest와 같은 ID·schema의 예전 타일이 섞여도 형식
+              검증을 통과했다.
+            </p>
+            <dl>
+              <dt>조건</dt>
+              <dd>부분 배포, 스테일 CDN/WebView 캐시, 공급망 오염</dd>
+              <dt>원격 유발</dt>
+              <dd>일반 사용자는 직접 유발할 수 없음</dd>
+              <dt>공격 경로</dt>
+              <dd>새 보행 정책 + 예전 geometry → 잘못된 경로 계산</dd>
+              <dt>코드 근거</dt>
+              <dd>기존 entry는 ID·bounds·bytes만 가짐</dd>
+              <dt>수정</dt>
+              <dd>번들 root → manifest → 개별 파일 해시 연결</dd>
+              <dt>테스트</dt>
+              <dd>스테일 타일, 변조 manifest, 중복 ID, places 변조 거부</dd>
+            </dl>
+          </article>
+
+          <article class="finding">
+            <span class="badge low">DSC-041 · LOW</span>
+            <h3>실행을 취소하지 못하는 메인 스레드 계산</h3>
+            <p>
+              기존 request ID 가드는 늦은 결과만 무시했다. fetch·JSON
+              확장·그래프·그늘·A*는 완료될 때까지 CPU를 사용했다.
+            </p>
+            <dl>
+              <dt>조건</dt>
+              <dd>정상 최대 복잡도 경로 + 화면 종료·백그라운드</dd>
+              <dt>영향</dt>
+              <dd>모바일 UI 지연, WebView 응답성 저하</dd>
+              <dt>오탐 경계</dt>
+              <dd>원격 사용자 간 DoS가 아닌 로컬 가용성 문제</dd>
+              <dt>수정</dt>
+              <dd>요청당 Worker + 30초 제한 + 수명주기 abort</dd>
+              <dt>테스트</dt>
+              <dd>abort·timeout·crash·unmount·pagehide 시 terminate 검증</dd>
+            </dl>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="trust-title">
+        <h2 id="trust-title">신뢰 연결</h2>
+        <div
+          class="trust"
+          role="img"
+          aria-label="앱 번들이 manifest와 장소 인덱스를 직접, manifest가 타일을 SHA-256으로 검증하는 구조"
+        >
+          <div class="trust-node">앱 JS 번들<br />integrity root</div>
+          <div class="trust-paths">
+            <div class="trust-path">
+              <div class="arrow" aria-hidden="true">→</div>
+              <div class="trust-node">
+                manifest schema 3<br />release + provenance
+              </div>
+              <div class="arrow" aria-hidden="true">→</div>
+              <div class="trust-node">812 route tiles</div>
+            </div>
+            <div class="trust-path direct">
+              <div class="arrow" aria-hidden="true">↘</div>
+              <div class="trust-node">
+                places.json 직접 검증<br />manifest에도 같은 해시 기록
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note" style="margin: 20px 0 0">
+          manifest와 타일만 함께 바꾸는 변조를 막으려면 신뢰 시작점이 mutable
+          manifest 밖에 있어야 한다. PR 3은 그 시작점을 배포 JS 번들에 둔다.
+          places는 번들 root와 manifest 모두에 같은 해시로 기록한다. public
+          경계와 런타임 TypeScript 경계는 한 생성 실행으로 만들고 drift를 빌드
+          전에 검사한다.
+        </p>
+      </section>
+
+      <section class="panel" aria-labelledby="build-title">
+        <h2 id="build-title">빌드·성능 결과</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>항목</th>
+                <th>PR 2</th>
+                <th>PR 3</th>
+                <th>해석</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>main minified JS</td>
+                <td>1,476.76KB</td>
+                <td>1,456.65KB</td>
+                <td>계산 코드를 Worker 청크로 분리</td>
+              </tr>
+              <tr>
+                <td>main gzip JS</td>
+                <td>471.01KB</td>
+                <td>462.95KB</td>
+                <td>초기 메인 청크 소폭 감소</td>
+              </tr>
+              <tr>
+                <td>route Worker</td>
+                <td>없음</td>
+                <td>69.42KB</td>
+                <td>same-origin module Worker 파일</td>
+              </tr>
+              <tr>
+                <td>AIT artifact</td>
+                <td>23,069,840 bytes</td>
+                <td>23,125,319 bytes</td>
+                <td>Worker와 해시·provenance 메타데이터 포함</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="margin: 18px 0 0; color: var(--muted)">
+          같은 경로 알고리즘을 쓰므로 총 계산 시간 감소를 주장하지 않는다.
+          확인한 개선은 메인 스레드 분리와 작업 취소다. Worker 종료는 실행
+          컨텍스트를 끝내지만, 실기기 네트워크 계층이 이미 시작한 전송을 즉시
+          해제하는지는 보장하지 않는다.
+        </p>
+      </section>
+
+      <section class="panel" aria-labelledby="verify-title">
+        <span class="badge closed">LOCAL GATES PASSED</span>
+        <h2 id="verify-title">검증</h2>
+        <div class="checks">
+          <div class="check">37개 테스트 파일<br />229개 테스트</div>
+          <div class="check">812개 타일·두 경계<br />무결성·drift 검증</div>
+          <div class="check">TypeScript·ESLint·AIT<br />프로덕션 빌드</div>
+        </div>
+        <p style="margin: 18px 0 0; color: var(--muted)">
+          기준은 main의 <code>010e6e3</code> 위에 있는 커밋 전 PR 2·PR 3 로컬
+          변경이다. 아직 immutable commit SHA가 없어 이 상태를 문서만으로 정확히
+          재현할 수는 없다.
+        </p>
+      </section>
+
+      <section class="panel" aria-labelledby="risk-title">
+        <h2 id="risk-title">남은 위험</h2>
+        <ul>
+          <li>
+            로컬 빌드는 통과했지만 앱인토스 iOS/Android 실기기의
+            <code>Worker</code> + <code>crypto.subtle</code> 호환성을 확인해야
+            한다.
+          </li>
+          <li>
+            실기기 경로 지연·프레임과 Worker 종료 뒤 네트워크 자원 해제 시점은
+            아직 측정하지 않았다.
+          </li>
+          <li>
+            스테일 캐시는 잘못된 경로 대신 fail-closed 오류를 만든다. immutable
+            release URL과 캐시 교체 정책은 후속 운영 개선이다.
+          </li>
+          <li>
+            integrity root는 JS 번들을 신뢰한다. JS와 데이터를 함께 교체하는
+            공격은 플랫폼 아티팩트 서명이 막아야 한다.
+          </li>
+          <li>
+            현재 원본의 다운로드 URL·취득 시각은 확인할 수 없어 provenance에
+            빈칸으로 남았다. 다음 데이터 갱신부터 필수로 기록한다.
+          </li>
+          <li>
+            CSP 헤더와 <code>worker-src 'self'</code>는 호스팅 계층 확인 후
+            별도로 적용한다.
+          </li>
+          <li>
+            PR 2의 endpoint connector 제한 geometry·출입구 접근 정책은 후속 보안
+            작업이다.
+          </li>
+        </ul>
+      </section>
+
+      <footer>
+        상세한 코드 위치, 오탐 경계, 최소 수정과 테스트는
+        <a href="./pr3-artifact-integrity-worker.md">Markdown 보고서</a>에
+        정리했다.
+      </footer>
+    </main>
+  </body>
+</html>

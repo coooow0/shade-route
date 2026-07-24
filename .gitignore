@@ -3,4 +3,16 @@ dist/
 coverage/
 .granite/
 *.ait
+*.log
 .DS_Store
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.jks
+*.keystore
+*.mobileprovision
