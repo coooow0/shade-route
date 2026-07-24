@@ -188,7 +188,7 @@ describe("App", () => {
     expect(searchButton).toBeEnabled();
     fireEvent.click(searchButton);
     expect(
-      await screen.findByRole("heading", { name: "경로 비교" }),
+      await screen.findByRole("heading", { name: /에서.*까지/ }),
     ).toBeVisible();
   });
 
@@ -242,7 +242,7 @@ describe("App", () => {
     choosePlace(goalInput(), "테헤란로 142", "토스플레이스");
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
 
-    await screen.findByRole("heading", { name: "경로 비교" });
+    await screen.findByRole("heading", { name: /에서.*까지/ });
     expect(mockedCalculate).toHaveBeenCalledWith(
       {
         start: expect.objectContaining({ id: "gangnam-11" }),
@@ -293,7 +293,7 @@ describe("App", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
-    await screen.findByRole("heading", { name: "경로 비교" });
+    await screen.findByRole("heading", { name: /에서.*까지/ });
     expect(mockedCalculate).toHaveBeenCalledWith(
       {
         start: currentPlace,
@@ -454,7 +454,7 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
 
     expect(
-      await screen.findByRole("heading", { name: "경로 비교" }),
+      await screen.findByRole("heading", { name: /에서.*까지/ }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", {
@@ -501,7 +501,7 @@ describe("App", () => {
       resolveRoute?.(bundle);
     });
     expect(
-      await screen.findByRole("heading", { name: "경로 비교" }),
+      await screen.findByRole("heading", { name: /에서.*까지/ }),
     ).toBeInTheDocument();
   });
 
@@ -546,12 +546,12 @@ describe("App", () => {
     mockedCalculate.mockResolvedValue(bundle);
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
-    await screen.findByRole("heading", { name: "경로 비교" });
+    await screen.findByRole("heading", { name: /에서.*까지/ });
 
     act(() => window.dispatchEvent(new Event("pagehide")));
 
     expect(
-      screen.getByRole("heading", { name: "경로 비교" }),
+      screen.getByRole("heading", { name: /에서.*까지/ }),
     ).toBeInTheDocument();
 
     const visibilityState = vi
@@ -561,7 +561,7 @@ describe("App", () => {
     visibilityState.mockRestore();
 
     expect(
-      screen.getByRole("heading", { name: "경로 비교" }),
+      screen.getByRole("heading", { name: /에서.*까지/ }),
     ).toBeInTheDocument();
   });
 
@@ -569,7 +569,7 @@ describe("App", () => {
     mockedCalculate.mockResolvedValue(bundle);
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
-    await screen.findByRole("heading", { name: "경로 비교" });
+    await screen.findByRole("heading", { name: /에서.*까지/ });
 
     fireEvent.click(screen.getByRole("button", { name: "그늘우선 경로 선택" }));
 
@@ -589,14 +589,13 @@ describe("App", () => {
     expect(
       await screen.findByRole("heading", { name: "상세 경로" }),
     ).toBeInTheDocument();
-    expect(screen.queryByLabelText("도보 경로 안내")).not.toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", { name: "상세 경로 2단계 보기" }),
-    );
+    expect(screen.getByLabelText("도보 경로 안내")).toBeInTheDocument();
     expect(screen.getByText("역삼역에 도착")).toBeInTheDocument();
     expect(
       screen.getByRole("status", { name: "균형 경로, 13분, 2단계" }),
     ).toHaveTextContent("예상 그늘 43%");
+    fireEvent.click(screen.getByRole("button", { name: "상세 경로 접기" }));
+    expect(screen.queryByLabelText("도보 경로 안내")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "그늘우선 경로 선택" }));
     expect(
@@ -617,7 +616,7 @@ describe("App", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
     expect(
-      await screen.findByRole("heading", { name: "경로 비교" }),
+      await screen.findByRole("heading", { name: /에서.*까지/ }),
     ).toBeInTheDocument();
     expect(mockedCalculate).toHaveBeenCalledTimes(2);
   });
@@ -679,14 +678,14 @@ describe("App", () => {
     mockedCalculate.mockResolvedValue(bundle);
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
-    await screen.findByRole("heading", { name: "경로 비교" });
+    await screen.findByRole("heading", { name: /에서.*까지/ });
 
-    fireEvent.click(screen.getByRole("button", { name: "출발지·도착지 수정" }));
+    fireEvent.click(screen.getByRole("button", { name: "검색으로 돌아가기" }));
 
     choosePlace(startInput(), "역삼역", "역삼역");
 
     expect(
-      screen.queryByRole("heading", { name: "경로 비교" }),
+      screen.queryByRole("heading", { name: /에서.*까지/ }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent(
       "출발지와 도착지를 다르게 선택해 주세요.",
@@ -711,15 +710,16 @@ describe("App", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
 
-    await screen.findByRole("heading", { name: "경로 비교" });
-    expect(screen.getAllByText(/햇빛 0분/).length).toBeGreaterThan(0);
+    await screen.findByRole("heading", { name: /에서.*까지/ });
+    const sunRow = screen.getByRole("row", { name: /^햇빛/ });
+    expect(sunRow).toHaveTextContent(/^햇빛0분0분0분$/);
   });
 
   it("recalculates results when the departure time changes", async () => {
     mockedCalculate.mockResolvedValue(bundle);
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
-    await screen.findByRole("heading", { name: "경로 비교" });
+    await screen.findByRole("heading", { name: /에서.*까지/ });
 
     fireEvent.click(screen.getByRole("button", { name: "그늘우선 경로 선택" }));
     fireEvent.click(screen.getByRole("button", { name: "30분 뒤" }));
@@ -739,12 +739,12 @@ describe("App", () => {
       name: "강남역 11번 출구에서 역삼역까지",
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "출발지·도착지 수정" }));
+    fireEvent.click(screen.getByRole("button", { name: "검색으로 돌아가기" }));
 
     expect(startInput()).toHaveValue("강남역 11번 출구");
     expect(goalInput()).toHaveValue("역삼역");
     expect(
-      screen.queryByRole("heading", { name: "경로 비교" }),
+      screen.queryByRole("heading", { name: /에서.*까지/ }),
     ).not.toBeInTheDocument();
     expect(mockedCalculate).toHaveBeenCalledOnce();
   });

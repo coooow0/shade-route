@@ -1180,6 +1180,7 @@ input:focus-visible {
   display: flex;
   align-items: center;
   gap: 6px;
+  margin: 0;
   overflow: hidden;
   color: #191f28;
   font-size: 14px;
@@ -1375,7 +1376,15 @@ input:focus-visible {
   margin-top: 12px;
 }
 .c-sheet-directions .route-overview {
-  display: none;
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 .c-sheet-directions .route-directions {
   border: 0;

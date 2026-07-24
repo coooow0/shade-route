@@ -45,21 +45,6 @@ function distanceLabel(meters: number) {
   return meters >= 1_000 ? `${(meters / 1_000).toFixed(1)}km` : `${meters}m`;
 }
 
-function routeDescription(route: RouteResult, shortest: RouteResult) {
-  if (route.mode === "shortest") return "가장 빠르게 도착해요";
-  const extra = Math.max(
-    0,
-    walkMinutes(route.timeSec) - walkMinutes(shortest.timeSec),
-  );
-  const saved = Math.max(
-    0,
-    sunMinutes(shortest.sunSec) - sunMinutes(route.sunSec),
-  );
-  if (saved === 0)
-    return extra === 0 ? "빠른길과 비슷해요" : `${extra}분 더 걸려요`;
-  return `${extra}분 더 걷고 햇빛 ${saved}분 절약`;
-}
-
 function routeByMode(routes: readonly RouteResult[], mode: RouteMode) {
   return routes.find((route) => route.mode === mode) ?? routes[0];
 }
@@ -577,11 +562,14 @@ function App() {
           >
             ←
           </button>
-          <div className="c-topbar-route">
+          <h1
+            className="c-topbar-route"
+            aria-label={`${bundle.start.name}에서 ${bundle.goal.name}까지`}
+          >
             <span>{bundle.start.name}</span>
             <em aria-hidden="true">→</em>
             <span>{bundle.goal.name}</span>
-          </div>
+          </h1>
         </header>
       )}
 
@@ -637,14 +625,7 @@ function App() {
 
       {bundle && selectedRoute && shortestRoute && status !== "error" && (
         <>
-          <div
-            className="c-map-full"
-            aria-labelledby="map-title"
-            role="region"
-          >
-            <h2 id="map-title" className="visually-hidden">
-              {selectedRoute.label} 경로 지도
-            </h2>
+          <div className="c-map-full">
             <RouteMap
               route={selectedRoute}
               start={bundle.start}
@@ -670,6 +651,7 @@ function App() {
                               ? "c-sheet-col-header selected"
                               : "c-sheet-col-header"
                           }
+                          aria-label={`${route.label} 경로 선택`}
                           aria-pressed={selected}
                           disabled={busy}
                           onClick={() => setSelectedMode(route.mode)}
