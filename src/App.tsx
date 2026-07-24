@@ -568,42 +568,19 @@ function App() {
       )}
 
       {isResultView && (
-        <header className="result-header">
-          <div className="result-title-row">
-            <div>
-              <span className="result-kicker">서울 그늘 경로</span>
-              <h1>
-                {bundle.start.name}에서 {bundle.goal.name}까지
-              </h1>
-            </div>
-            <button type="button" onClick={invalidateResult}>
-              출발지·도착지 수정
-            </button>
-          </div>
-          <p className="result-benefit">
-            {routeDescription(selectedRoute, shortestRoute)} · 예상 그늘{" "}
-            {Math.round(selectedRoute.shadeRatio * 100)}%
-          </p>
-          <div className="result-time-row">
-            <span>출발 시각</span>
-            <div className="time-chips">
-              {TIME_OPTIONS.map((option) => (
-                <button
-                  key={option.minutes}
-                  type="button"
-                  className={
-                    offsetMinutes === option.minutes
-                      ? "time-chip active"
-                      : "time-chip"
-                  }
-                  aria-pressed={offsetMinutes === option.minutes}
-                  disabled={busy}
-                  onClick={() => selectTime(option.minutes)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+        <header className="c-topbar">
+          <button
+            className="c-topbar-back"
+            type="button"
+            onClick={invalidateResult}
+            aria-label="검색으로 돌아가기"
+          >
+            ←
+          </button>
+          <div className="c-topbar-route">
+            <span>{bundle.start.name}</span>
+            <em aria-hidden="true">→</em>
+            <span>{bundle.goal.name}</span>
           </div>
         </header>
       )}
@@ -660,93 +637,146 @@ function App() {
 
       {bundle && selectedRoute && shortestRoute && status !== "error" && (
         <>
-          <section
-            className="comparison-section result-comparison"
-            aria-labelledby="comparison-title"
-          >
-            <div className="section-heading">
-              <div>
-                <span className="section-index">02</span>
-                <h2 id="comparison-title">경로 비교</h2>
-              </div>
-              <span className="calculated-time">예상 그늘 기준</span>
-            </div>
-            <div className="route-cards">
-              {bundle.routes.map((route) => {
-                const selected = route.mode === selectedRoute.mode;
-                return (
-                  <button
-                    key={route.mode}
-                    type="button"
-                    className={
-                      selected
-                        ? `route-card ${route.mode} selected`
-                        : `route-card ${route.mode}`
-                    }
-                    aria-label={`${route.label} 경로 선택`}
-                    aria-pressed={selected}
-                    disabled={busy}
-                    onClick={() => setSelectedMode(route.mode)}
-                  >
-                    <span className="route-card-top">
-                      <strong>{route.label}</strong>
-                      {route.mode === recommendedMode && <em>추천</em>}
-                    </span>
-                    <span className="route-time">
-                      {walkMinutes(route.timeSec)}분
-                    </span>
-                    <span className="route-meta">
-                      {distanceLabel(route.lengthM)} · 햇빛{" "}
-                      {sunMinutes(route.sunSec)}분
-                    </span>
-                    <span className="shade-meter">
-                      <i
-                        style={{
-                          width: `${Math.round(route.shadeRatio * 100)}%`,
-                        }}
-                      />
-                    </span>
-                    <span className="shade-percent">
-                      예상 그늘 {Math.round(route.shadeRatio * 100)}%
-                    </span>
-                    <span className="route-description">
-                      {routeDescription(route, shortestRoute)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-
-          <section
-            className="map-section result-map-section"
+          <div
+            className="c-map-full"
             aria-labelledby="map-title"
+            role="region"
           >
-            <div className="section-heading">
-              <div>
-                <span className="section-index">03</span>
-                <h2 id="map-title">{selectedRoute.label} 경로</h2>
-              </div>
-              <span className="selected-summary">
-                햇빛 {sunMinutes(selectedRoute.sunSec)}분
-              </span>
-            </div>
-            <RouteDirections
+            <h2 id="map-title" className="visually-hidden">
+              {selectedRoute.label} 경로 지도
+            </h2>
+            <RouteMap
               route={selectedRoute}
-              requestedAt={bundle.requestedAt}
+              start={bundle.start}
               goal={bundle.goal}
-            >
-              <RouteMap
+            />
+          </div>
+
+          <aside className="c-sheet" aria-label="경로 정보">
+            <div className="c-sheet-handle" aria-hidden="true" />
+
+            <table className="c-sheet-table" aria-label="세 경로 지표 비교">
+              <thead>
+                <tr>
+                  <th scope="col" aria-label="지표" />
+                  {bundle.routes.map((route) => {
+                    const selected = route.mode === selectedRoute.mode;
+                    return (
+                      <th key={route.mode} scope="col">
+                        <button
+                          type="button"
+                          className={
+                            selected
+                              ? "c-sheet-col-header selected"
+                              : "c-sheet-col-header"
+                          }
+                          aria-pressed={selected}
+                          disabled={busy}
+                          onClick={() => setSelectedMode(route.mode)}
+                        >
+                          <span>{route.label}</span>
+                          {route.mode === recommendedMode && <em>추천</em>}
+                        </button>
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">시간</th>
+                  {bundle.routes.map((route) => (
+                    <td
+                      key={route.mode}
+                      className={
+                        route.mode === selectedRoute.mode ? "selected" : ""
+                      }
+                    >
+                      <b>{walkMinutes(route.timeSec)}</b>분
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <th scope="row">거리</th>
+                  {bundle.routes.map((route) => (
+                    <td
+                      key={route.mode}
+                      className={
+                        route.mode === selectedRoute.mode ? "selected" : ""
+                      }
+                    >
+                      {distanceLabel(route.lengthM)}
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <th scope="row">햇빛</th>
+                  {bundle.routes.map((route) => (
+                    <td
+                      key={route.mode}
+                      className={
+                        route.mode === selectedRoute.mode ? "selected" : ""
+                      }
+                    >
+                      {sunMinutes(route.sunSec)}분
+                    </td>
+                  ))}
+                </tr>
+                <tr>
+                  <th scope="row">예상 그늘</th>
+                  {bundle.routes.map((route) => (
+                    <td
+                      key={route.mode}
+                      className={
+                        route.mode === selectedRoute.mode
+                          ? "selected shade-cell"
+                          : "shade-cell"
+                      }
+                    >
+                      <span className="shade-bar" aria-hidden="true">
+                        <i
+                          style={{
+                            width: `${Math.round(route.shadeRatio * 100)}%`,
+                          }}
+                        />
+                      </span>
+                      <b>{Math.round(route.shadeRatio * 100)}%</b>
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+
+            <div className="c-sheet-time" role="group" aria-label="출발 시각">
+              {TIME_OPTIONS.map((option) => (
+                <button
+                  key={option.minutes}
+                  type="button"
+                  className={
+                    offsetMinutes === option.minutes
+                      ? "time-chip active"
+                      : "time-chip"
+                  }
+                  aria-pressed={offsetMinutes === option.minutes}
+                  disabled={busy}
+                  onClick={() => selectTime(option.minutes)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="c-sheet-directions">
+              <RouteDirections
                 route={selectedRoute}
-                start={bundle.start}
+                requestedAt={bundle.requestedAt}
                 goal={bundle.goal}
               />
-            </RouteDirections>
-            <p className="estimate-note">
-              건물 높이와 태양 위치로 계산한 예상 그늘이에요. 실제 현장과 다를
-              수 있어요.
-            </p>
-          </section>
+              <p className="estimate-note">
+                예상 그늘 · 실제 현장과 다를 수 있어요
+              </p>
+            </div>
+          </aside>
         </>
       )}
     </main>

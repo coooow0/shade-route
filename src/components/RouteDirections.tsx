@@ -65,13 +65,13 @@ export default function RouteDirections({
 }: RouteDirectionsProps) {
   const headingId = useId();
   const listId = `${headingId}-list`;
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const directions = buildWalkingDirections(route.segments, goal.name);
   const directionsTooComplex =
     directions.length > ROUTE_RESOURCE_LIMITS.directionSteps;
 
   useEffect(() => {
-    setExpanded(false);
+    setExpanded(true);
   }, [route.pathKey]);
 
   return (

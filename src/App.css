@@ -1127,6 +1127,264 @@ input:focus-visible {
   margin-top: 7px;
   padding: 10px;
 }
+.visually-hidden {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.result-view {
+  position: relative;
+  min-height: 100vh;
+  padding: 0 0 0 !important;
+  background: #e9edf2;
+}
+.c-topbar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px 10px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: saturate(160%) blur(8px);
+  -webkit-backdrop-filter: saturate(160%) blur(8px);
+  border-bottom: 1px solid #e5e8eb;
+  box-shadow: 0 4px 14px rgba(0, 27, 55, 0.06);
+}
+.c-topbar-back {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  color: #191f28;
+  background: #f2f4f6;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.c-topbar-route {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  color: #191f28;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+.c-topbar-route span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.c-topbar-route em {
+  flex: none;
+  color: #8b95a1;
+  font-style: normal;
+  font-weight: 800;
+}
+@media (min-width: 481px) {
+  .c-topbar {
+    right: auto;
+    left: auto;
+    width: 100%;
+    max-width: 480px;
+  }
+}
+.c-map-full {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 56px);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 400;
+  background: #e9edf2;
+}
+@media (min-width: 481px) {
+  .c-map-full {
+    right: auto;
+    left: auto;
+    width: 100%;
+    max-width: 480px;
+  }
+}
+.c-map-full .route-map-wrap {
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: #e9edf2;
+}
+.c-map-full .route-map-stage {
+  height: 100%;
+}
+.c-map-full .route-map {
+  height: 100%;
+}
+.c-map-full .map-location-controls {
+  right: 12px;
+  bottom: auto;
+  left: 12px;
+  top: 12px;
+  justify-content: flex-end;
+}
+.c-map-full .map-location-status,
+.c-map-full .map-location-error,
+.c-map-full .map-location-privacy,
+.c-map-full .map-tile-notice,
+.c-map-full .map-footer {
+  display: none;
+}
+.c-sheet {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 800;
+  max-height: 62vh;
+  overflow-y: auto;
+  padding: 8px 14px calc(env(safe-area-inset-bottom, 0px) + 18px);
+  background: #fff;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  box-shadow: 0 -14px 34px rgba(0, 27, 55, 0.16);
+  -webkit-overflow-scrolling: touch;
+}
+@media (min-width: 481px) {
+  .c-sheet {
+    right: auto;
+    left: auto;
+    width: 100%;
+    max-width: 480px;
+  }
+}
+.c-sheet-handle {
+  display: block;
+  width: 40px;
+  height: 4px;
+  margin: 0 auto 10px;
+  border-radius: 999px;
+  background: #d1d6db;
+}
+.c-sheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.c-sheet-table th,
+.c-sheet-table td {
+  padding: 8px 4px;
+  text-align: center;
+  vertical-align: middle;
+  border-bottom: 1px solid #eef1f3;
+}
+.c-sheet-table thead th {
+  padding: 0 3px 6px;
+  border-bottom: 1px solid #d8dde1;
+}
+.c-sheet-table tbody th[scope="row"] {
+  padding-left: 2px;
+  color: #6b7684;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  width: 62px;
+}
+.c-sheet-table td.selected {
+  background: #eef6ff;
+}
+.c-sheet-table td b {
+  font-size: 15px;
+  font-weight: 800;
+  color: #191f28;
+  letter-spacing: -0.2px;
+}
+.c-sheet-table td.shade-cell .shade-bar {
+  display: block;
+  height: 3px;
+  margin: 0 auto 4px;
+  max-width: 68px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eef1f3;
+}
+.c-sheet-table td.shade-cell .shade-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #6b8afd, #3156d3);
+}
+.c-sheet-col-header {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  padding: 6px 3px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #4e5968;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.c-sheet-col-header.selected {
+  border-color: #3182f6;
+  background: #eef6ff;
+  color: #1b64da;
+}
+.c-sheet-col-header em {
+  padding: 1px 4px;
+  border-radius: 4px;
+  color: #613d00;
+  background: #ffd66b;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 800;
+}
+.c-sheet-time {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 12px;
+}
+.c-sheet-time .time-chip {
+  min-height: 34px;
+  padding: 7px 6px;
+  border-radius: 9px;
+  font-size: 12px;
+}
+.c-sheet-directions {
+  margin-top: 12px;
+}
+.c-sheet-directions .route-overview {
+  display: none;
+}
+.c-sheet-directions .route-directions {
+  border: 0;
+  padding: 4px 0 0;
+}
+.c-sheet-directions .directions-toggle {
+  padding: 10px;
+  border-radius: 10px;
+}
 @keyframes pulse {
   0%,
   100% {
