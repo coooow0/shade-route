@@ -1,0 +1,194 @@
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import RouteFeedback from "./RouteFeedback";
+import { APP_VERSION } from "../appVersion";
+import type { RouteResult } from "../domain/routing/types";
+
+const route: RouteResult = {
+  mode: "balanced",
+  label: "균형",
+  pathKey: "balanced-key",
+  timeSec: 720,
+  lengthM: 880,
+  sunSec: 240,
+  shadeRatio: 0.62,
+  segments: [],
+};
+
+const REQUESTED_AT = "2026-07-25T08:00:00.000Z";
+const WEBHOOK = "https://example.com/webhook";
+
+function makeStorage(): Storage {
+  const map = new Map<string, string>();
+  return {
+    get length() {
+      return map.size;
+    },
+    clear: () => map.clear(),
+    getItem: (key: string) => map.get(key) ?? null,
+    key: (index: number) => Array.from(map.keys())[index] ?? null,
+    removeItem: (key: string) => {
+      map.delete(key);
+    },
+    setItem: (key: string, value: string) => {
+      map.set(key, value);
+    },
+  };
+}
+
+describe("RouteFeedback", () => {
+  beforeEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("collects satisfaction, memo, and wanted-city then submits with route metrics", async () => {
+    const submit = vi.fn().mockResolvedValue(undefined);
+    const storage = makeStorage();
+
+    render(
+      <RouteFeedback
+        route={route}
+        requestedAt={REQUESTED_AT}
+        webhookUrl={WEBHOOK}
+        submit={submit}
+        storage={storage}
+        now={() => new Date("2026-07-25T08:00:12.000Z")}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /좋음/ }));
+    fireEvent.change(screen.getByLabelText(/무엇이 달랐나요/), {
+      target: { value: "  오후엔 그늘이 훨씬 많았어요  " },
+    });
+    fireEvent.change(screen.getByLabelText(/다른 도시도 원해요/), {
+      target: { value: "부산" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "보내기" }));
+
+    await waitFor(() => expect(submit).toHaveBeenCalledOnce());
+    expect(submit).toHaveBeenCalledWith(
+      {
+        satisfaction: "good",
+        memo: "오후엔 그늘이 훨씬 많았어요",
+        wantedCity: "부산",
+        routeMode: "balanced",
+        timeSec: 720,
+        lengthM: 880,
+        sunSec: 240,
+        shadeRatio: 0.62,
+        requestedAt: REQUESTED_AT,
+        submittedAt: "2026-07-25T08:00:12.000Z",
+        appVersion: APP_VERSION,
+      },
+      { webhookUrl: WEBHOOK },
+    );
+    expect(
+      await screen.findByText(/피드백 고마워요/),
+    ).toBeInTheDocument();
+    expect(
+      storage.getItem(`shade-route:feedback:${route.pathKey}`),
+    ).toBeTruthy();
+  });
+
+  it("submits without optional fields when the user leaves them blank", async () => {
+    const submit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <RouteFeedback
+        route={route}
+        requestedAt={REQUESTED_AT}
+        webhookUrl={WEBHOOK}
+        submit={submit}
+        storage={makeStorage()}
+        now={() => new Date("2026-07-25T08:00:12.000Z")}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /나쁨/ }));
+    fireEvent.click(screen.getByRole("button", { name: "보내기" }));
+
+    await waitFor(() => expect(submit).toHaveBeenCalledOnce());
+    const submission = submit.mock.calls[0][0];
+    expect(submission.satisfaction).toBe("bad");
+    expect(submission.memo).toBeUndefined();
+    expect(submission.wantedCity).toBeUndefined();
+  });
+
+  it("skips the form entirely for a route already submitted", () => {
+    const submit = vi.fn();
+    const storage = makeStorage();
+    storage.setItem(
+      `shade-route:feedback:${route.pathKey}`,
+      "2026-07-24T09:00:00.000Z",
+    );
+
+    render(
+      <RouteFeedback
+        route={route}
+        requestedAt={REQUESTED_AT}
+        webhookUrl={WEBHOOK}
+        submit={submit}
+        storage={storage}
+      />,
+    );
+
+    expect(screen.getByText(/피드백 고마워요/)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /좋음/ }),
+    ).not.toBeInTheDocument();
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it("shows an inline error and allows retry when the submission fails", async () => {
+    const submit = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("FEEDBACK_SUBMIT_FAILED"))
+      .mockResolvedValueOnce(undefined);
+
+    render(
+      <RouteFeedback
+        route={route}
+        requestedAt={REQUESTED_AT}
+        webhookUrl={WEBHOOK}
+        submit={submit}
+        storage={makeStorage()}
+        now={() => new Date("2026-07-25T08:00:12.000Z")}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /보통/ }));
+    fireEvent.click(screen.getByRole("button", { name: "보내기" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "피드백을 보내지 못했어요",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "보내기" }));
+
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(2));
+    expect(
+      await screen.findByText(/피드백 고마워요/),
+    ).toBeInTheDocument();
+  });
+
+  it("hides the detail form when the user cancels", () => {
+    const submit = vi.fn();
+
+    render(
+      <RouteFeedback
+        route={route}
+        requestedAt={REQUESTED_AT}
+        webhookUrl={WEBHOOK}
+        submit={submit}
+        storage={makeStorage()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /좋음/ }));
+    expect(screen.getByLabelText(/무엇이 달랐나요/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "취소" }));
+    expect(screen.queryByLabelText(/무엇이 달랐나요/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "보내기" })).not.toBeInTheDocument();
+  });
+});

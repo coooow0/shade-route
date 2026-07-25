@@ -158,6 +158,7 @@
 - 날씨: 사용자 위치 대신 고정된 서울 대표 좌표를 Open-Meteo에 보낸다.
 - Open-Meteo 데이터는 CC BY 4.0이며 앱 화면에 출처와 가공 사실을 표시한다.
 - Open-Meteo 무료 API는 비상업 프로토타입에서만 사용한다. 광고·결제 또는 상용 출시 전에는 유료 customer API와 서버 프록시로 전환한다.
+- 정확도 피드백: 결과 화면 하단 위젯이 사용자가 명시적으로 `보내기`를 누른 경우에만 만족도·경로 지표·선택 메모·요청 도시를 `VITE_FEEDBACK_WEBHOOK_URL` 웹훅으로 보낸다. 좌표·검색어·계정 정보는 보내지 않고, 같은 경로는 `localStorage`에 저장해 두 번 요청하지 않는다. 웹훅 URL이 비어 있으면 위젯 자체를 렌더링하지 않는다. 세부 세팅은 [`docs/feedback-webhook.md`](./docs/feedback-webhook.md)에 정리한다.
 
 ## 기술 구조
 

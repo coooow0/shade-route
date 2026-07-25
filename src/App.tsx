@@ -2,6 +2,7 @@ import { Top } from "@toss/tds-mobile";
 import { useEffect, useRef, useState } from "react";
 import PlaceCombobox from "./components/PlaceCombobox";
 import RouteDirections from "./components/RouteDirections";
+import RouteFeedback from "./components/RouteFeedback";
 import RouteMap from "./components/RouteMap";
 import WeatherBanner from "./components/WeatherBanner";
 import {
@@ -32,6 +33,8 @@ const TIME_OPTIONS = [
 ] as const;
 
 const SEOUL_WEATHER_LOCATION = { lat: 37.5665, lon: 126.978 } as const;
+
+const FEEDBACK_WEBHOOK_URL = import.meta.env.VITE_FEEDBACK_WEBHOOK_URL ?? "";
 
 function walkMinutes(seconds: number) {
   return Math.max(1, Math.round(seconds / 60));
@@ -757,6 +760,13 @@ function App() {
               <p className="estimate-note">
                 예상 그늘 · 실제 현장과 다를 수 있어요
               </p>
+              {FEEDBACK_WEBHOOK_URL && (
+                <RouteFeedback
+                  route={selectedRoute}
+                  requestedAt={bundle.requestedAt}
+                  webhookUrl={FEEDBACK_WEBHOOK_URL}
+                />
+              )}
             </div>
           </aside>
         </>

@@ -51,6 +51,12 @@ npm run data:seoul
 - 경로 데이터 로드와 계산은 module Web Worker에서 실행하고, 앱이 닫히거나 백그라운드 수명주기 이벤트를 받으면 진행 중 Worker 실행 컨텍스트를 종료해요.
 - 데이터 무결성 연결, Worker 메시지 경계, 성능·호환성·남은 위험은 [PR 3 보안 보고서](./docs/security/pr3-artifact-integrity-worker.md)와 [HTML 요약](./docs/security/pr3-artifact-integrity-worker.html)에 정리했어요.
 
+## 정확도 피드백
+
+- 결과 화면 하단에서 `이 경로가 실제와 얼마나 맞았어요?`를 물어 만족도(좋음/보통/나쁨)와 선택 메모, 다른 도시 요청을 받아요.
+- 위치·검색어·계정 정보는 보내지 않고, 만족도와 경로 지표(모드·시간·거리·햇빛·그늘)만 웹훅으로 전달해요.
+- `VITE_FEEDBACK_WEBHOOK_URL` 환경 변수가 비어 있으면 위젯 자체가 렌더링되지 않아요. Google Apps Script 세팅 절차는 [피드백 웹훅 안내](./docs/feedback-webhook.md)에 정리했어요.
+
 ## 라이선스와 기여
 
 - 소스 코드 라이선스는 아직 선택하지 않았어요. 공개 전환 전에 [공개 체크리스트](./docs/public-release-checklist.md)에 따라 `LICENSE`를 추가해야 해요.
