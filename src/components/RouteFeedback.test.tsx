@@ -171,6 +171,61 @@ describe("RouteFeedback", () => {
     ).toBeInTheDocument();
   });
 
+  it("still submits when getItem/setItem are missing (broken storage)", async () => {
+    const submit = vi.fn().mockResolvedValue(undefined);
+    const brokenStorage = {} as unknown as Storage;
+
+    render(
+      <RouteFeedback
+        route={route}
+        requestedAt={REQUESTED_AT}
+        webhookUrl={WEBHOOK}
+        submit={submit}
+        storage={brokenStorage}
+        now={() => new Date("2026-07-25T08:00:12.000Z")}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /좋음/ }));
+    fireEvent.click(screen.getByRole("button", { name: "보내기" }));
+
+    await waitFor(() => expect(submit).toHaveBeenCalledOnce());
+    expect(await screen.findByText(/피드백 고마워요/)).toBeInTheDocument();
+  });
+
+  it("keeps working when setItem throws (quota exceeded)", async () => {
+    const submit = vi.fn().mockResolvedValue(undefined);
+    const throwingStorage: Storage = {
+      get length() {
+        return 0;
+      },
+      clear: () => undefined,
+      getItem: () => null,
+      key: () => null,
+      removeItem: () => undefined,
+      setItem: () => {
+        throw new DOMException("quota exceeded", "QuotaExceededError");
+      },
+    };
+
+    render(
+      <RouteFeedback
+        route={route}
+        requestedAt={REQUESTED_AT}
+        webhookUrl={WEBHOOK}
+        submit={submit}
+        storage={throwingStorage}
+        now={() => new Date("2026-07-25T08:00:12.000Z")}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /보통/ }));
+    fireEvent.click(screen.getByRole("button", { name: "보내기" }));
+
+    await waitFor(() => expect(submit).toHaveBeenCalledOnce());
+    expect(await screen.findByText(/피드백 고마워요/)).toBeInTheDocument();
+  });
+
   it("hides the detail form when the user cancels", () => {
     const submit = vi.fn();
 

@@ -748,4 +748,49 @@ describe("App", () => {
     ).not.toBeInTheDocument();
     expect(mockedCalculate).toHaveBeenCalledOnce();
   });
+
+  it("does not render the feedback widget when the webhook env is empty", async () => {
+    mockedCalculate.mockResolvedValue(bundle);
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
+    await screen.findByRole("heading", { name: /에서.*까지/ });
+
+    expect(
+      screen.queryByRole("heading", {
+        name: "이 경로가 실제와 얼마나 맞았어요?",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders the feedback widget and preserves route interactions when the webhook env is set", async () => {
+    vi.stubEnv(
+      "VITE_FEEDBACK_WEBHOOK_URL",
+      "https://example.com/hook",
+    );
+    mockedCalculate.mockResolvedValue(bundle);
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
+
+    await screen.findByRole("heading", { name: /에서.*까지/ });
+    expect(
+      screen.getByRole("heading", {
+        name: "이 경로가 실제와 얼마나 맞았어요?",
+      }),
+    ).toBeInTheDocument();
+
+    // Mode switching still works next to the widget.
+    fireEvent.click(screen.getByRole("button", { name: "그늘우선 경로 선택" }));
+    expect(
+      screen.getByRole("button", { name: "그늘우선 경로 선택" }),
+    ).toHaveAttribute("aria-pressed", "true");
+
+    // Back button still routes to the search screen.
+    fireEvent.click(screen.getByRole("button", { name: "검색으로 돌아가기" }));
+    expect(startInput()).toHaveValue("강남역 11번 출구");
+    expect(
+      screen.queryByRole("heading", {
+        name: "이 경로가 실제와 얼마나 맞았어요?",
+      }),
+    ).not.toBeInTheDocument();
+  });
 });

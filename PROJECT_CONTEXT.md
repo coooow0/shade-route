@@ -159,6 +159,11 @@
 - Open-Meteo 데이터는 CC BY 4.0이며 앱 화면에 출처와 가공 사실을 표시한다.
 - Open-Meteo 무료 API는 비상업 프로토타입에서만 사용한다. 광고·결제 또는 상용 출시 전에는 유료 customer API와 서버 프록시로 전환한다.
 - 정확도 피드백: 결과 화면 하단 위젯이 사용자가 명시적으로 `보내기`를 누른 경우에만 만족도·경로 지표·선택 메모·요청 도시를 `VITE_FEEDBACK_WEBHOOK_URL` 웹훅으로 보낸다. 좌표·검색어·계정 정보는 보내지 않고, 같은 경로는 `localStorage`에 저장해 두 번 요청하지 않는다. 웹훅 URL이 비어 있으면 위젯 자체를 렌더링하지 않는다. 세부 세팅은 [`docs/feedback-webhook.md`](./docs/feedback-webhook.md)에 정리한다.
+- 피드백 웹훅의 위협 모델과 수용 위험:
+  - `VITE_FEEDBACK_WEBHOOK_URL`은 Vite 빌드 시 앱 JS 번들에 인라인된다. 클라이언트 노출 값이며 비밀이 아니다. Apps Script 쪽에서 `isValid` 스키마 검증, `LockService` 직렬화, `PropertiesService` 일일 저장 상한(`DAILY_ROW_LIMIT`), 셀 선행 `=+-@` 이스케이프를 방어선으로 두었다.
+  - 위 방어는 시트 오염과 수식 주입은 막지만, Apps Script 실행 쿼터 소진 공격까지는 완전히 차단하지 못한다. 진짜 rate limit이 필요하면 Cloudflare Worker 같은 앞단이 필요하다.
+  - 출시 후에는 시트 행 수·요청 도시 필드·비정상 패턴을 매일 점검한다. 스팸이 관찰되면 `DAILY_ROW_LIMIT` 하향, URL 재발급, Cloudflare Worker 앞단 도입 순으로 대응한다.
+- 피드백 위젯의 `localStorage` 접근은 방어적이다. `getItem`/`setItem`이 함수가 아니거나 예외를 던지면 저장을 건너뛰고 위젯은 그대로 동작한다. private mode·WebView 정책·quota 오류에서 위젯이 죽지 않는다.
 
 ## 기술 구조
 

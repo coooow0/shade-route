@@ -34,7 +34,11 @@ const TIME_OPTIONS = [
 
 const SEOUL_WEATHER_LOCATION = { lat: 37.5665, lon: 126.978 } as const;
 
-const FEEDBACK_WEBHOOK_URL = import.meta.env.VITE_FEEDBACK_WEBHOOK_URL ?? "";
+// Read per render so tests can toggle the env via `vi.stubEnv` and so that Vitest
+// picks up whatever `.env.local` holds without freezing the value at import time.
+function readFeedbackWebhookUrl(): string {
+  return import.meta.env.VITE_FEEDBACK_WEBHOOK_URL ?? "";
+}
 
 function walkMinutes(seconds: number) {
   return Math.max(1, Math.round(seconds / 60));
@@ -122,6 +126,7 @@ function App() {
 
   const busy = status === "loading" || locating;
   const hasUncommittedSearch = startEditing || goalEditing;
+  const feedbackWebhookUrl = readFeedbackWebhookUrl();
   useEffect(() => {
     let active = true;
     setPlaceLoadState("loading");
@@ -760,11 +765,11 @@ function App() {
               <p className="estimate-note">
                 예상 그늘 · 실제 현장과 다를 수 있어요
               </p>
-              {FEEDBACK_WEBHOOK_URL && (
+              {feedbackWebhookUrl && (
                 <RouteFeedback
                   route={selectedRoute}
                   requestedAt={bundle.requestedAt}
-                  webhookUrl={FEEDBACK_WEBHOOK_URL}
+                  webhookUrl={feedbackWebhookUrl}
                 />
               )}
             </div>

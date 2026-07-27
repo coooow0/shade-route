@@ -35,12 +35,44 @@ function storageKey(pathKey: string) {
   return `${STORAGE_KEY_PREFIX}${pathKey}`;
 }
 
+// Storage 사용은 이 위젯의 부가 기능이다. 저장소가 없거나 (private mode, WebView 정책),
+// getItem/setItem이 함수가 아니거나 (테스트에서 부분 mock), 저장 시 예외를 던지면 (quota),
+// 위젯은 저장 없이 그대로 동작해야 한다. dedupe만 못할 뿐 UI는 정상.
+function isUsableStorage(candidate: unknown): candidate is Storage {
+  return (
+    typeof candidate === "object" &&
+    candidate !== null &&
+    typeof (candidate as Storage).getItem === "function" &&
+    typeof (candidate as Storage).setItem === "function"
+  );
+}
+
 function getStorage(explicit?: Storage): Storage | null {
-  if (explicit) return explicit;
+  if (explicit !== undefined) return isUsableStorage(explicit) ? explicit : null;
   try {
-    return typeof window === "undefined" ? null : window.localStorage;
+    if (typeof window === "undefined") return null;
+    const candidate = window.localStorage;
+    return isUsableStorage(candidate) ? candidate : null;
   } catch {
     return null;
+  }
+}
+
+function safeGetItem(store: Storage | null, key: string): string | null {
+  if (!store) return null;
+  try {
+    return store.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSetItem(store: Storage | null, key: string, value: string): void {
+  if (!store) return;
+  try {
+    store.setItem(key, value);
+  } catch {
+    // 저장 실패는 무시. 이번 세션에서 dedupe만 놓칠 뿐이다.
   }
 }
 
@@ -57,7 +89,7 @@ export default function RouteFeedback({
   const cityId = `${headingId}-city`;
   const store = getStorage(storage);
   const [phase, setPhase] = useState<Phase>(() =>
-    store?.getItem(storageKey(route.pathKey)) ? "done" : "picking",
+    safeGetItem(store, storageKey(route.pathKey)) ? "done" : "picking",
   );
   const [satisfaction, setSatisfaction] = useState<Satisfaction | null>(null);
   const [memo, setMemo] = useState("");
@@ -65,7 +97,7 @@ export default function RouteFeedback({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (store?.getItem(storageKey(route.pathKey))) {
+    if (safeGetItem(store, storageKey(route.pathKey))) {
       setPhase("done");
       return;
     }
@@ -103,7 +135,7 @@ export default function RouteFeedback({
         },
         { webhookUrl },
       );
-      store?.setItem(storageKey(route.pathKey), now().toISOString());
+      safeSetItem(store, storageKey(route.pathKey), now().toISOString());
       setPhase("done");
     } catch {
       setErrorMessage(
