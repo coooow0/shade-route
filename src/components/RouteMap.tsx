@@ -26,6 +26,7 @@ interface RouteMapProps {
   readonly route: RouteResult;
   readonly start: Place;
   readonly goal: Place;
+  readonly getBottomOcclusionElement?: () => HTMLElement | null;
   readonly mountMap?: RouteMapMount;
   readonly subscribeLocation?: LiveLocationSubscribe;
 }
@@ -50,6 +51,7 @@ export default function RouteMap({
   route,
   start,
   goal,
+  getBottomOcclusionElement,
   mountMap = mountLeafletRouteMap,
   subscribeLocation = subscribeLiveLocation,
 }: RouteMapProps) {
@@ -99,6 +101,7 @@ export default function RouteMap({
         start,
         goal,
         onTileError: () => setTileFailed(true),
+        getBottomOcclusionElement,
       });
       mapController.current = controller;
       controller.updateCurrentLocation(
@@ -114,7 +117,7 @@ export default function RouteMap({
       setMapFailed(true);
       return undefined;
     }
-  }, [goal, hasGeometry, mountMap, route, start]);
+  }, [getBottomOcclusionElement, goal, hasGeometry, mountMap, route, start]);
 
   useEffect(() => {
     mapController.current?.updateCurrentLocation(currentLocation, following);

@@ -21,6 +21,7 @@ const leaflet = vi.hoisted(() => {
   circleLayer.addTo.mockReturnValue(circleLayer);
   const map = {
     fitBounds: vi.fn(),
+    invalidateSize: vi.fn(),
     panTo: vi.fn(),
     remove: vi.fn(),
     removeLayer: vi.fn(),
@@ -178,5 +179,49 @@ describe("mountLeafletRouteMap", () => {
     });
 
     expect(leaflet.api.polyline).toHaveBeenCalledTimes(4);
+  });
+
+  it("fits the route inside the map area that is not covered by the result sheet", () => {
+    vi.stubGlobal("navigator", { userAgent: "iPhone" });
+    const element = document.createElement("div");
+    const sheet = document.createElement("aside");
+    vi.spyOn(element, "getBoundingClientRect").mockReturnValue({
+      top: 56,
+      right: 390,
+      bottom: 844,
+      left: 0,
+      width: 390,
+      height: 788,
+      x: 0,
+      y: 56,
+      toJSON: () => ({}),
+    });
+    vi.spyOn(sheet, "getBoundingClientRect").mockReturnValue({
+      top: 321,
+      right: 390,
+      bottom: 844,
+      left: 0,
+      width: 390,
+      height: 523,
+      x: 0,
+      y: 321,
+      toJSON: () => ({}),
+    });
+
+    const controller = mountLeafletRouteMap({
+      element,
+      route,
+      start,
+      goal,
+      onTileError: vi.fn(),
+      getBottomOcclusionElement: () => sheet,
+    });
+
+    expect(leaflet.map.fitBounds).toHaveBeenCalledWith(leaflet.bounds, {
+      paddingTopLeft: [28, 28],
+      paddingBottomRight: [28, 551],
+      maxZoom: 17,
+    });
+    controller.destroy();
   });
 });

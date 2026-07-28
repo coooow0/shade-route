@@ -5,6 +5,8 @@ import type { Place, RouteResult, RouteSegment } from "../domain/routing/types";
 
 const OSM_TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const MAX_ACCURACY_RADIUS_M = 1_000;
+const ROUTE_PADDING_PX = 28;
+const MIN_VISIBLE_ROUTE_AREA_PX = 96;
 
 export interface MountLeafletRouteMapOptions {
   readonly element: HTMLDivElement;
@@ -12,6 +14,7 @@ export interface MountLeafletRouteMapOptions {
   readonly start: Place;
   readonly goal: Place;
   readonly onTileError: () => void;
+  readonly getBottomOcclusionElement?: () => HTMLElement | null;
 }
 
 export interface LeafletRouteMapController {
@@ -45,6 +48,31 @@ function routeLine(segment: RouteSegment): L.LatLngTuple[] {
   ];
 }
 
+function bottomOcclusionPx(
+  mapElement: HTMLElement,
+  getOcclusionElement?: () => HTMLElement | null,
+) {
+  const occlusionElement = getOcclusionElement?.();
+  if (!occlusionElement) return 0;
+
+  const mapRect = mapElement.getBoundingClientRect();
+  const occlusionRect = occlusionElement.getBoundingClientRect();
+  const overlapsHorizontally =
+    occlusionRect.left < mapRect.right && occlusionRect.right > mapRect.left;
+  const coversMapBottom = occlusionRect.bottom >= mapRect.bottom;
+  if (!overlapsHorizontally || !coversMapBottom) return 0;
+
+  const overlap = Math.max(
+    0,
+    mapRect.bottom - Math.max(mapRect.top, occlusionRect.top),
+  );
+  const maximumInset = Math.max(
+    0,
+    mapRect.height - ROUTE_PADDING_PX * 2 - MIN_VISIBLE_ROUTE_AREA_PX,
+  );
+  return Math.min(overlap, maximumInset);
+}
+
 function addMarker(
   map: L.Map,
   place: Place,
@@ -73,6 +101,7 @@ export function mountLeafletRouteMap({
   start,
   goal,
   onTileError,
+  getBottomOcclusionElement,
 }: MountLeafletRouteMapOptions): LeafletRouteMapController {
   // JSDOM has no layout engine. Component tests inject a map mount when needed.
   if (navigator.userAgent.toLowerCase().includes("jsdom")) {
@@ -141,8 +170,17 @@ export function mountLeafletRouteMap({
   addMarker(map, start, "출발", "#3182f6");
   addMarker(map, goal, "도착", "#ff7a45");
 
-  const fitToBounds = () =>
-    map.fitBounds(bounds, { padding: [28, 28], maxZoom: 17 });
+  const fitToBounds = () => {
+    const bottomInset = bottomOcclusionPx(element, getBottomOcclusionElement);
+    map.fitBounds(bounds, {
+      paddingTopLeft: [ROUTE_PADDING_PX, ROUTE_PADDING_PX],
+      paddingBottomRight: [
+        ROUTE_PADDING_PX,
+        ROUTE_PADDING_PX + bottomInset,
+      ],
+      maxZoom: 17,
+    });
+  };
   fitToBounds();
 
   // 검색 → 결과 화면 전환 직후 컨테이너 레이아웃이 아직 확정되지 않은 상태에서
@@ -182,17 +220,14 @@ export function mountLeafletRouteMap({
 
   let resizeObserver: ResizeObserver | null = null;
   if (typeof ResizeObserver !== "undefined") {
-    let firstEntry = true;
     resizeObserver = new ResizeObserver(() => {
       if (destroyed) return;
-      // ResizeObserver의 최초 콜백은 초기 크기 보고라 굳이 재보정할 필요가 없다.
-      if (firstEntry) {
-        firstEntry = false;
-        return;
-      }
-      map.invalidateSize();
+      map.invalidateSize({ animate: false, pan: false });
+      fitToBounds();
     });
     resizeObserver.observe(element);
+    const occlusionElement = getBottomOcclusionElement?.();
+    if (occlusionElement) resizeObserver.observe(occlusionElement);
   }
 
   let accuracyCircle: L.Circle | null = null;

@@ -1,5 +1,5 @@
 import { Top } from "@toss/tds-mobile";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import PlaceCombobox from "./components/PlaceCombobox";
 import RouteDirections from "./components/RouteDirections";
 import RouteFeedback from "./components/RouteFeedback";
@@ -123,6 +123,8 @@ function App() {
   const latestRequest = useRef(0);
   const activeRouteController = useRef<AbortController | null>(null);
   const latestLocationRequest = useRef(0);
+  const resultSheet = useRef<HTMLElement | null>(null);
+  const getResultSheet = useCallback(() => resultSheet.current, []);
 
   const busy = status === "loading" || locating;
   const hasUncommittedSearch = startEditing || goalEditing;
@@ -638,10 +640,15 @@ function App() {
               route={selectedRoute}
               start={bundle.start}
               goal={bundle.goal}
+              getBottomOcclusionElement={getResultSheet}
             />
           </div>
 
-          <aside className="c-sheet" aria-label="경로 정보">
+          <aside
+            ref={resultSheet}
+            className="c-sheet"
+            aria-label="경로 정보"
+          >
             <div className="c-sheet-handle" aria-hidden="true" />
 
             <table className="c-sheet-table" aria-label="세 경로 지표 비교">
