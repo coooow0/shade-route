@@ -147,14 +147,38 @@ export function mountLeafletRouteMap({
 
   // 검색 → 결과 화면 전환 직후 컨테이너 레이아웃이 아직 확정되지 않은 상태에서
   // Leaflet이 크기를 잘못 재면 경로가 안 그려지고 사용자가 지도를 한 번 움직여야
-  // 보였다. 한 프레임 미룬 뒤 다시 재고 fit을 다시 한다. 이후 방향 전환 등으로
-  // 컨테이너 크기가 바뀌어도 자동으로 재보정하도록 ResizeObserver도 붙인다.
+  // 보였다. 한 프레임 만으로는 iOS WebView·position:fixed 조합에서 부족한 경우가
+  // 있어 double rAF + setTimeout fallback으로 확실히 잡고, 그 이후 방향 전환·시트
+  // 조작으로 크기가 바뀔 때도 자동 재보정하도록 ResizeObserver를 붙인다.
   let destroyed = false;
-  const initialFitFrame = globalThis.requestAnimationFrame?.(() => {
-    if (destroyed) return;
-    map.invalidateSize();
-    fitToBounds();
-  });
+  const fitFrames: number[] = [];
+  const fitTimers: ReturnType<typeof setTimeout>[] = [];
+
+  const scheduleRefit = () => {
+    const rafOuter = globalThis.requestAnimationFrame?.(() => {
+      if (destroyed) return;
+      map.invalidateSize();
+      fitToBounds();
+      const rafInner = globalThis.requestAnimationFrame?.(() => {
+        if (destroyed) return;
+        map.invalidateSize();
+        fitToBounds();
+      });
+      if (rafInner !== undefined) fitFrames.push(rafInner);
+    });
+    if (rafOuter !== undefined) fitFrames.push(rafOuter);
+
+    // rAF 만으로 부족한 케이스 (하이드레이션 지연, 첫 페인트 이전 크기 계산 실패
+    // 등)에 대비한 최종 안전망.
+    fitTimers.push(
+      setTimeout(() => {
+        if (destroyed) return;
+        map.invalidateSize();
+        fitToBounds();
+      }, 150),
+    );
+  };
+  scheduleRefit();
 
   let resizeObserver: ResizeObserver | null = null;
   if (typeof ResizeObserver !== "undefined") {
@@ -236,8 +260,11 @@ export function mountLeafletRouteMap({
     destroy: () => {
       if (destroyed) return;
       destroyed = true;
-      if (initialFitFrame !== undefined) {
-        globalThis.cancelAnimationFrame?.(initialFitFrame);
+      for (const frame of fitFrames) {
+        globalThis.cancelAnimationFrame?.(frame);
+      }
+      for (const timer of fitTimers) {
+        clearTimeout(timer);
       }
       resizeObserver?.disconnect();
       map.remove();
