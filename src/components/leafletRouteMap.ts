@@ -140,11 +140,39 @@ export function mountLeafletRouteMap({
 
   addMarker(map, start, "출발", "#3182f6");
   addMarker(map, goal, "도착", "#ff7a45");
-  map.fitBounds(bounds, { padding: [28, 28], maxZoom: 17 });
+
+  const fitToBounds = () =>
+    map.fitBounds(bounds, { padding: [28, 28], maxZoom: 17 });
+  fitToBounds();
+
+  // 검색 → 결과 화면 전환 직후 컨테이너 레이아웃이 아직 확정되지 않은 상태에서
+  // Leaflet이 크기를 잘못 재면 경로가 안 그려지고 사용자가 지도를 한 번 움직여야
+  // 보였다. 한 프레임 미룬 뒤 다시 재고 fit을 다시 한다. 이후 방향 전환 등으로
+  // 컨테이너 크기가 바뀌어도 자동으로 재보정하도록 ResizeObserver도 붙인다.
+  let destroyed = false;
+  const initialFitFrame = globalThis.requestAnimationFrame?.(() => {
+    if (destroyed) return;
+    map.invalidateSize();
+    fitToBounds();
+  });
+
+  let resizeObserver: ResizeObserver | null = null;
+  if (typeof ResizeObserver !== "undefined") {
+    let firstEntry = true;
+    resizeObserver = new ResizeObserver(() => {
+      if (destroyed) return;
+      // ResizeObserver의 최초 콜백은 초기 크기 보고라 굳이 재보정할 필요가 없다.
+      if (firstEntry) {
+        firstEntry = false;
+        return;
+      }
+      map.invalidateSize();
+    });
+    resizeObserver.observe(element);
+  }
 
   let accuracyCircle: L.Circle | null = null;
   let currentLocationMarker: L.CircleMarker | null = null;
-  let destroyed = false;
 
   const removeCurrentLocation = () => {
     if (accuracyCircle) map.removeLayer(accuracyCircle);
@@ -208,6 +236,10 @@ export function mountLeafletRouteMap({
     destroy: () => {
       if (destroyed) return;
       destroyed = true;
+      if (initialFitFrame !== undefined) {
+        globalThis.cancelAnimationFrame?.(initialFitFrame);
+      }
+      resizeObserver?.disconnect();
       map.remove();
     },
   };
