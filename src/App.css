@@ -1154,6 +1154,8 @@ input:focus-visible {
   align-items: center;
   gap: 10px;
   padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px 10px;
+  padding-right: calc(14px + env(safe-area-inset-right, 0px));
+  padding-left: calc(14px + env(safe-area-inset-left, 0px));
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: saturate(160%) blur(8px);
   -webkit-backdrop-filter: saturate(160%) blur(8px);
@@ -1237,9 +1239,9 @@ input:focus-visible {
   height: 100%;
 }
 .c-map-full .map-location-controls {
-  right: 12px;
+  right: calc(12px + env(safe-area-inset-right, 0px));
   bottom: auto;
-  left: 12px;
+  left: calc(12px + env(safe-area-inset-left, 0px));
   top: 12px;
   justify-content: flex-end;
 }
@@ -1251,6 +1253,7 @@ input:focus-visible {
   display: none;
 }
 .c-sheet {
+  box-sizing: border-box;
   position: fixed;
   right: 0;
   bottom: 0;
@@ -1258,7 +1261,10 @@ input:focus-visible {
   z-index: 800;
   max-height: 62vh;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 8px 14px calc(env(safe-area-inset-bottom, 0px) + 18px);
+  padding-right: calc(14px + env(safe-area-inset-right, 0px));
+  padding-left: calc(14px + env(safe-area-inset-left, 0px));
   background: #fff;
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
@@ -1552,6 +1558,41 @@ input:focus-visible {
   }
   body {
     background: #e9edf2 !important;
+  }
+}
+@media (min-width: 680px) {
+  .result-view {
+    --result-panel-width: calc(
+      clamp(320px, 42vw, 400px) + env(safe-area-inset-right, 0px)
+    );
+  }
+  .c-topbar {
+    right: 0;
+    left: 0;
+    width: auto;
+    max-width: none;
+  }
+  .c-map-full {
+    right: var(--result-panel-width);
+    left: 0;
+    width: auto;
+    max-width: none;
+  }
+  .c-sheet {
+    top: calc(env(safe-area-inset-top, 0px) + 56px);
+    right: 0;
+    bottom: 0;
+    left: auto;
+    width: var(--result-panel-width);
+    max-width: none;
+    max-height: none;
+    border: 0;
+    border-left: 1px solid #e5e8eb;
+    border-radius: 0;
+    box-shadow: -14px 0 34px rgba(0, 27, 55, 0.14);
+  }
+  .c-sheet-handle {
+    display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {

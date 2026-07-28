@@ -224,4 +224,48 @@ describe("mountLeafletRouteMap", () => {
     });
     controller.destroy();
   });
+
+  it("uses normal route padding when the result panel sits beside the map", () => {
+    vi.stubGlobal("navigator", { userAgent: "iPhone" });
+    const element = document.createElement("div");
+    const panel = document.createElement("aside");
+    vi.spyOn(element, "getBoundingClientRect").mockReturnValue({
+      top: 56,
+      right: 445,
+      bottom: 1_024,
+      left: 0,
+      width: 445,
+      height: 968,
+      x: 0,
+      y: 56,
+      toJSON: () => ({}),
+    });
+    vi.spyOn(panel, "getBoundingClientRect").mockReturnValue({
+      top: 56,
+      right: 768,
+      bottom: 1_024,
+      left: 445,
+      width: 323,
+      height: 968,
+      x: 445,
+      y: 56,
+      toJSON: () => ({}),
+    });
+
+    const controller = mountLeafletRouteMap({
+      element,
+      route,
+      start,
+      goal,
+      onTileError: vi.fn(),
+      getBottomOcclusionElement: () => panel,
+    });
+
+    expect(leaflet.map.fitBounds).toHaveBeenCalledWith(leaflet.bounds, {
+      paddingTopLeft: [28, 28],
+      paddingBottomRight: [28, 28],
+      maxZoom: 17,
+    });
+    controller.destroy();
+  });
 });
