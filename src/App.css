@@ -1239,11 +1239,20 @@ input:focus-visible {
   height: 100%;
 }
 .c-map-full .map-location-controls {
-  right: calc(12px + env(safe-area-inset-right, 0px));
+  right: auto;
   bottom: auto;
   left: calc(12px + env(safe-area-inset-left, 0px));
   top: 12px;
-  justify-content: flex-end;
+  max-width: calc(
+    100% - 84px - env(safe-area-inset-left, 0px) -
+      env(safe-area-inset-right, 0px)
+  );
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+.c-map-full .map-location-controls button {
+  max-width: 100%;
+  white-space: nowrap;
 }
 .c-map-full .map-location-status,
 .c-map-full .map-location-error,
@@ -1253,6 +1262,8 @@ input:focus-visible {
   display: none;
 }
 .c-sheet {
+  --result-sheet-peek-height: 312px;
+
   box-sizing: border-box;
   position: fixed;
   right: 0;
@@ -1269,6 +1280,7 @@ input:focus-visible {
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
   box-shadow: 0 -14px 34px rgba(0, 27, 55, 0.16);
+  transition: max-height 260ms cubic-bezier(0.22, 1, 0.36, 1);
   -webkit-overflow-scrolling: touch;
 }
 @media (min-width: 481px) {
@@ -1280,12 +1292,55 @@ input:focus-visible {
   }
 }
 .c-sheet-handle {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: block;
-  width: 40px;
+  width: 64px;
+  height: 44px;
+  margin: -8px auto 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  cursor: ns-resize;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.c-sheet-handle::before {
+  position: absolute;
+  top: 20px;
+  right: 12px;
+  left: 12px;
   height: 4px;
-  margin: 0 auto 10px;
   border-radius: 999px;
   background: #d1d6db;
+  content: "";
+}
+.c-sheet-handle:active::before {
+  background: #8b95a1;
+}
+.c-sheet-handle:focus {
+  outline: none;
+}
+.c-sheet-handle:focus-visible::before {
+  box-shadow: 0 0 0 3px rgba(49, 130, 246, 0.24);
+}
+@media (max-width: 679px) {
+  .c-sheet.is-collapsed {
+    max-height: var(--result-sheet-peek-height);
+    overflow-y: hidden;
+  }
+  .c-sheet.is-dragging {
+    max-height: var(--result-sheet-drag-height);
+    overflow-y: hidden;
+    transition: none;
+    user-select: none;
+  }
+  .c-sheet.is-collapsed:not(.is-dragging):not(.is-settling)
+    .c-sheet-directions {
+    visibility: hidden;
+  }
 }
 .c-sheet-table {
   width: 100%;
@@ -1596,6 +1651,9 @@ input:focus-visible {
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .c-sheet {
+    transition: none;
+  }
   .loading-sun {
     animation: none;
   }

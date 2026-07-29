@@ -118,6 +118,54 @@ const bundle: RouteBundle = {
   ],
 };
 
+function mockResultSheetLayout(sheet: HTMLElement) {
+  const header = sheet.querySelector("thead");
+  const timeOptions = sheet.querySelector(".c-sheet-time");
+  if (
+    !(header instanceof HTMLElement) ||
+    !(timeOptions instanceof HTMLElement)
+  ) {
+    throw new Error("Missing result sheet peek content");
+  }
+  Object.defineProperty(sheet, "scrollHeight", {
+    configurable: true,
+    value: 500,
+  });
+  vi.spyOn(sheet, "getBoundingClientRect").mockReturnValue({
+    top: 0,
+    right: 390,
+    bottom: 500,
+    left: 0,
+    width: 390,
+    height: 500,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  });
+  vi.spyOn(header, "getBoundingClientRect").mockReturnValue({
+    top: 44,
+    right: 390,
+    bottom: 96,
+    left: 0,
+    width: 390,
+    height: 52,
+    x: 0,
+    y: 44,
+    toJSON: () => ({}),
+  });
+  vi.spyOn(timeOptions, "getBoundingClientRect").mockReturnValue({
+    top: 260,
+    right: 390,
+    bottom: 304,
+    left: 0,
+    width: 390,
+    height: 44,
+    x: 0,
+    y: 260,
+    toJSON: () => ({}),
+  });
+}
+
 describe("App", () => {
   beforeEach(() => {
     mockedCalculate.mockReset();
@@ -581,6 +629,119 @@ describe("App", () => {
     ).toBeInTheDocument();
   });
 
+  it("keeps the map and route choices visible when the result sheet is dragged down", async () => {
+    mockedCalculate.mockResolvedValue(bundle);
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
+    await screen.findByRole("heading", { name: /에서.*까지/ });
+
+    const handle = screen.getByRole("button", { name: "경로 정보 접기" });
+    const sheet = screen.getByLabelText("경로 정보");
+    mockResultSheetLayout(sheet);
+    fireEvent.pointerDown(handle, {
+      button: 0,
+      clientY: 100,
+      isPrimary: true,
+      pointerId: 1,
+    });
+    fireEvent.pointerMove(handle, {
+      button: 0,
+      clientY: 132,
+      isPrimary: true,
+      pointerId: 1,
+    });
+
+    expect(sheet).toHaveClass("is-dragging");
+    expect(sheet).toHaveStyle({
+      "--result-sheet-drag-height": "468px",
+    });
+
+    fireEvent.pointerUp(handle, {
+      button: 0,
+      clientY: 148,
+      isPrimary: true,
+      pointerId: 1,
+    });
+
+    expect(sheet).toHaveClass("is-collapsed");
+    expect(sheet).toHaveStyle({
+      "--result-sheet-peek-height": "312px",
+    });
+    expect(
+      screen.getByRole("button", { name: "경로 정보 펼치기" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.getByRole("region", { name: "균형 경로 지도" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "빠른길 경로 선택" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "균형 경로 선택" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "그늘우선 경로 선택" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: "출발 시각" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "그늘우선 경로 선택" }));
+    expect(
+      screen.getByRole("region", { name: "그늘우선 경로 지도" }),
+    ).toBeInTheDocument();
+  });
+
+  it("restores the result details when the collapsed sheet is dragged up", async () => {
+    mockedCalculate.mockResolvedValue(bundle);
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
+    await screen.findByRole("heading", { name: /에서.*까지/ });
+
+    const expandedHandle = screen.getByRole("button", {
+      name: "경로 정보 접기",
+    });
+    fireEvent.pointerDown(expandedHandle, {
+      button: 0,
+      clientY: 100,
+      isPrimary: true,
+      pointerId: 1,
+    });
+    fireEvent.pointerUp(expandedHandle, {
+      button: 0,
+      clientY: 148,
+      isPrimary: true,
+      pointerId: 1,
+    });
+
+    const collapsedHandle = screen.getByRole("button", {
+      name: "경로 정보 펼치기",
+    });
+    fireEvent.pointerDown(collapsedHandle, {
+      button: 0,
+      clientY: 148,
+      isPrimary: true,
+      pointerId: 2,
+    });
+    fireEvent.pointerUp(collapsedHandle, {
+      button: 0,
+      clientY: 100,
+      isPrimary: true,
+      pointerId: 2,
+    });
+
+    expect(screen.getByLabelText("경로 정보")).not.toHaveClass("is-collapsed");
+    expect(
+      screen.getByRole("button", { name: "경로 정보 접기" }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(
+      screen.getByRole("group", { name: "출발 시각" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "상세 경로" }),
+    ).toBeInTheDocument();
+  });
+
   it("shows friendly walking directions and updates them with the route mode", async () => {
     mockedCalculate.mockResolvedValue(bundle);
     render(<App />);
@@ -763,10 +924,7 @@ describe("App", () => {
   });
 
   it("renders the feedback widget and preserves route interactions when the webhook env is set", async () => {
-    vi.stubEnv(
-      "VITE_FEEDBACK_WEBHOOK_URL",
-      "https://example.com/hook",
-    );
+    vi.stubEnv("VITE_FEEDBACK_WEBHOOK_URL", "https://example.com/hook");
     mockedCalculate.mockResolvedValue(bundle);
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));

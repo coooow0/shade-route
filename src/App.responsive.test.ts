@@ -44,10 +44,35 @@ describe("wide result layout", () => {
       /\.c-topbar\s*{[\s\S]*?padding-right:\s*calc\(14px \+ env\(safe-area-inset-right,\s*0px\)\)[\s\S]*?padding-left:\s*calc\(14px \+ env\(safe-area-inset-left,\s*0px\)\)/,
     );
     expect(appCss).toMatch(
-      /\.c-map-full \.map-location-controls\s*{[\s\S]*?right:\s*calc\(12px \+ env\(safe-area-inset-right,\s*0px\)\)[\s\S]*?left:\s*calc\(12px \+ env\(safe-area-inset-left,\s*0px\)\)/,
+      /\.c-map-full \.map-location-controls\s*{[\s\S]*?right:\s*auto[\s\S]*?left:\s*calc\(12px \+ env\(safe-area-inset-left,\s*0px\)\)[\s\S]*?max-width:\s*calc\([\s\S]*?100% - 84px[\s\S]*?safe-area-inset-left[\s\S]*?safe-area-inset-right[\s\S]*?\)[\s\S]*?justify-content:\s*flex-start/,
     );
     expect(appCss).toMatch(
       /\.c-sheet\s*{[\s\S]*?padding-right:\s*calc\(14px \+ env\(safe-area-inset-right,\s*0px\)\)[\s\S]*?padding-left:\s*calc\(14px \+ env\(safe-area-inset-left,\s*0px\)\)/,
+    );
+  });
+
+  it("keeps route metrics and time options visible when the mobile sheet is collapsed", () => {
+    expect(mobileLayoutCss).toMatch(
+      /@media \(max-width:\s*679px\)\s*{[\s\S]*?\.c-sheet\.is-collapsed[\s\S]*?max-height:\s*var\(--result-sheet-peek-height\)[\s\S]*?\.c-sheet\.is-collapsed:not\(\.is-dragging\):not\(\.is-settling\)[\s\S]*?\.c-sheet-directions[\s\S]*?visibility:\s*hidden/,
+    );
+    expect(mobileLayoutCss).not.toMatch(
+      /\.c-sheet\.is-collapsed[^{]*\.c-sheet-table\s+tbody/,
+    );
+    expect(mobileLayoutCss).not.toMatch(
+      /\.c-sheet\.is-collapsed[^{]*\.c-sheet-time/,
+    );
+    expect(mobileLayoutCss).not.toContain(
+      ".c-sheet.is-collapsed .c-sheet-table thead th:first-child",
+    );
+    expect(wideLayoutCss).not.toContain(".c-sheet.is-collapsed");
+  });
+
+  it("slides the mobile sheet without covering the route choices", () => {
+    expect(appCss).toMatch(
+      /\.c-sheet\s*{[\s\S]*?transition:[\s\S]*?max-height/,
+    );
+    expect(appCss).toMatch(
+      /\.c-sheet-handle\s*{[\s\S]*?margin:\s*-8px auto 8px[\s\S]*?background:\s*transparent/,
     );
   });
 });

@@ -1,10 +1,18 @@
 import { Top } from "@toss/tds-mobile";
 import { useCallback, useEffect, useRef, useState } from "react";
 import PlaceCombobox from "./components/PlaceCombobox";
+import ResultSheetHandle from "./components/ResultSheetHandle";
 import RouteDirections from "./components/RouteDirections";
 import RouteFeedback from "./components/RouteFeedback";
 import RouteMap from "./components/RouteMap";
 import WeatherBanner from "./components/WeatherBanner";
+import {
+  distanceLabel,
+  routeByMode,
+  sunMinutes,
+  walkMinutes,
+} from "./components/routeSummary";
+import { useResultSheetMotion } from "./components/useResultSheetMotion";
 import {
   CurrentLocationError,
   requestCurrentLocationPermission,
@@ -18,12 +26,7 @@ import {
 } from "./domain/weather/currentWeather";
 import { PLACES } from "./domain/routing/routeService";
 import { calculateRouteBundleForPlaces } from "./domain/routing/routeWorkerClient";
-import type {
-  Place,
-  RouteBundle,
-  RouteMode,
-  RouteResult,
-} from "./domain/routing/types";
+import type { Place, RouteBundle, RouteMode } from "./domain/routing/types";
 import "./App.css";
 
 const TIME_OPTIONS = [
@@ -38,22 +41,6 @@ const SEOUL_WEATHER_LOCATION = { lat: 37.5665, lon: 126.978 } as const;
 // picks up whatever `.env.local` holds without freezing the value at import time.
 function readFeedbackWebhookUrl(): string {
   return import.meta.env.VITE_FEEDBACK_WEBHOOK_URL ?? "";
-}
-
-function walkMinutes(seconds: number) {
-  return Math.max(1, Math.round(seconds / 60));
-}
-
-function sunMinutes(seconds: number) {
-  return Math.max(0, Math.round(seconds / 60));
-}
-
-function distanceLabel(meters: number) {
-  return meters >= 1_000 ? `${(meters / 1_000).toFixed(1)}km` : `${meters}m`;
-}
-
-function routeByMode(routes: readonly RouteResult[], mode: RouteMode) {
-  return routes.find((route) => route.mode === mode) ?? routes[0];
 }
 
 function mergePlaces(stations: readonly Place[]) {
@@ -109,6 +96,7 @@ function App() {
   const [goalEditing, setGoalEditing] = useState(false);
   const [bundle, setBundle] = useState<RouteBundle | null>(null);
   const [selectedMode, setSelectedMode] = useState<RouteMode>("balanced");
+  const resultSheetMotion = useResultSheetMotion();
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
@@ -235,6 +223,7 @@ function App() {
       );
       if (requestId !== latestRequest.current || controller.signal.aborted)
         return;
+      resultSheetMotion.expand();
       setBundle(result);
       setSelectedMode((current) =>
         result.routes.some((route) => route.mode === current)
@@ -646,12 +635,18 @@ function App() {
 
           <aside
             ref={resultSheet}
-            className="c-sheet"
             aria-label="경로 정보"
+            {...resultSheetMotion.sheetProps}
           >
-            <div className="c-sheet-handle" aria-hidden="true" />
+            <ResultSheetHandle
+              controls="route-sheet-directions"
+              {...resultSheetMotion.handleProps}
+            />
 
-            <table className="c-sheet-table" aria-label="세 경로 지표 비교">
+            <table
+              className="c-sheet-table"
+              aria-label="경로 선택 및 세 경로 지표 비교"
+            >
               <thead>
                 <tr>
                   <th scope="col" aria-label="지표" />
@@ -679,7 +674,7 @@ function App() {
                   })}
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="route-sheet-metrics">
                 <tr>
                   <th scope="row">시간</th>
                   {bundle.routes.map((route) => (
@@ -744,7 +739,13 @@ function App() {
               </tbody>
             </table>
 
-            <div className="c-sheet-time" role="group" aria-label="출발 시각">
+            <div
+              id="route-sheet-time"
+              className="c-sheet-time"
+              role="group"
+              aria-label="출발 시각"
+              data-sheet-peek-end
+            >
               {TIME_OPTIONS.map((option) => (
                 <button
                   key={option.minutes}
@@ -763,7 +764,7 @@ function App() {
               ))}
             </div>
 
-            <div className="c-sheet-directions">
+            <div id="route-sheet-directions" className="c-sheet-directions">
               <RouteDirections
                 route={selectedRoute}
                 requestedAt={bundle.requestedAt}
