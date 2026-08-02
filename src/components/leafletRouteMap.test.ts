@@ -153,6 +153,13 @@ describe("mountLeafletRouteMap", () => {
       expect.objectContaining({ animate: true }),
     );
 
+    leaflet.map.fitBounds.mockClear();
+    controller.showRoute();
+    expect(leaflet.map.fitBounds).toHaveBeenCalledWith(
+      leaflet.bounds,
+      expect.objectContaining({ maxZoom: 17 }),
+    );
+
     controller.updateCurrentLocation(null, false);
     expect(leaflet.map.removeLayer).toHaveBeenCalledTimes(2);
     controller.destroy();

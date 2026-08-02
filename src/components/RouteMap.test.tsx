@@ -43,6 +43,7 @@ describe("RouteMap", () => {
   it("mounts an interactive OpenStreetMap with route geometry", () => {
     const controller = {
       updateCurrentLocation: vi.fn(),
+      showRoute: vi.fn(),
       destroy: vi.fn(),
     };
     const mountMap = vi.fn(() => controller) as RouteMapMount;
@@ -78,6 +79,7 @@ describe("RouteMap", () => {
   it("shows raw live location, accuracy, following, and cautious off-route status", () => {
     const controller = {
       updateCurrentLocation: vi.fn(),
+      showRoute: vi.fn(),
       destroy: vi.fn(),
     };
     const mountMap = vi.fn(() => controller) as RouteMapMount;
@@ -123,6 +125,15 @@ describe("RouteMap", () => {
     expect(
       screen.getByRole("button", { name: "지도 자동 이동 켜짐" }),
     ).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "경로 다시 보기" }));
+    expect(controller.showRoute).toHaveBeenCalledOnce();
+    expect(
+      screen.getByRole("button", { name: "지도 자동 이동 켜기" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(controller.updateCurrentLocation).toHaveBeenLastCalledWith(
+      far,
+      false,
+    );
     expect(
       screen.queryByText("경로를 벗어난 것 같아요"),
     ).not.toBeInTheDocument();
@@ -134,11 +145,11 @@ describe("RouteMap", () => {
     expect(screen.getByText("경로를 벗어난 것 같아요")).toBeVisible();
 
     fireEvent.click(
-      screen.getByRole("button", { name: "지도 자동 이동 켜짐" }),
+      screen.getByRole("button", { name: "지도 자동 이동 켜기" }),
     );
     expect(controller.updateCurrentLocation).toHaveBeenLastCalledWith(
       expect.objectContaining({ timestampMs: 3 }),
-      false,
+      true,
     );
 
     unmount();
@@ -157,6 +168,7 @@ describe("RouteMap", () => {
         goal={goal}
         mountMap={() => ({
           updateCurrentLocation: vi.fn(),
+          showRoute: vi.fn(),
           destroy: vi.fn(),
         })}
         subscribeLocation={subscribeLocation}
@@ -187,6 +199,7 @@ describe("RouteMap", () => {
         goal={goal}
         mountMap={() => ({
           updateCurrentLocation: vi.fn(),
+          showRoute: vi.fn(),
           destroy: vi.fn(),
         })}
         subscribeLocation={() => stop}
@@ -207,6 +220,7 @@ describe("RouteMap", () => {
       onTileError();
       return {
         updateCurrentLocation: vi.fn(),
+        showRoute: vi.fn(),
         destroy: vi.fn(),
       };
     }) as RouteMapMount;
@@ -257,6 +271,7 @@ describe("RouteMap", () => {
   it("shows a fallback without mounting a map when geometry is empty", () => {
     const mountMap = vi.fn(() => ({
       updateCurrentLocation: vi.fn(),
+      showRoute: vi.fn(),
       destroy: vi.fn(),
     })) as RouteMapMount;
     render(

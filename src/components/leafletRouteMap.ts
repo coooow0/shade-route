@@ -22,6 +22,7 @@ export interface LeafletRouteMapController {
     location: LiveLocationSample | null,
     following: boolean,
   ) => void;
+  readonly showRoute: () => void;
   readonly destroy: () => void;
 }
 
@@ -107,6 +108,7 @@ export function mountLeafletRouteMap({
   if (navigator.userAgent.toLowerCase().includes("jsdom")) {
     return {
       updateCurrentLocation: () => undefined,
+      showRoute: () => undefined,
       destroy: () => undefined,
     };
   }
@@ -241,6 +243,7 @@ export function mountLeafletRouteMap({
   };
 
   return {
+    showRoute: fitToBounds,
     updateCurrentLocation: (location, following) => {
       if (destroyed) return;
       if (location === null) {

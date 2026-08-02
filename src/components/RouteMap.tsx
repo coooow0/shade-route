@@ -167,6 +167,11 @@ export default function RouteMap({
     });
   };
 
+  const showRoute = () => {
+    setFollowing(false);
+    mapController.current?.showRoute();
+  };
+
   if (!hasGeometry) {
     return <div className="map-empty">표시할 경로가 없어요.</div>;
   }
@@ -209,6 +214,9 @@ export default function RouteMap({
               >
                 <span aria-hidden="true">◉</span>
                 {following ? "지도 자동 이동 켜짐" : "지도 자동 이동 켜기"}
+              </button>
+              <button type="button" onClick={showRoute}>
+                경로 다시 보기
               </button>
               <button type="button" onClick={stopTracking}>
                 위치 숨기기
