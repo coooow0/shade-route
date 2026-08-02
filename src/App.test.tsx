@@ -7,6 +7,7 @@ import {
 } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
+import { trackRouteResultView } from "./domain/analytics/routeAnalytics";
 import { loadSeoulPlaces } from "./domain/places/loadSeoulPlaces";
 import {
   CurrentLocationError,
@@ -16,6 +17,10 @@ import {
 import { calculateRouteBundleForPlaces } from "./domain/routing/routeWorkerClient";
 import { loadCurrentWeather } from "./domain/weather/currentWeather";
 import type { RouteBundle, RouteResult } from "./domain/routing/types";
+
+vi.mock("./domain/analytics/routeAnalytics", () => ({
+  trackRouteResultView: vi.fn(),
+}));
 
 vi.mock("./domain/routing/routeWorkerClient", () => ({
   calculateRouteBundleForPlaces: vi.fn(),
@@ -44,6 +49,7 @@ vi.mock("./domain/weather/currentWeather", async () => {
 });
 
 const mockedCalculate = vi.mocked(calculateRouteBundleForPlaces);
+const mockedTrackRouteResultView = vi.mocked(trackRouteResultView);
 const mockedLocation = vi.mocked(resolveCurrentPlace);
 const mockedPermissionRequest = vi.mocked(requestCurrentLocationPermission);
 const mockedPlaces = vi.mocked(loadSeoulPlaces);
@@ -118,6 +124,16 @@ const bundle: RouteBundle = {
   ],
 };
 
+// 요약 문장은 숫자만 강조하려고 여러 조각으로 나뉜다. getByText는 자식 요소가 있는
+// 노드를 건너뛰므로 문단 전체 텍스트를 직접 읽는다.
+function routeSummaryText() {
+  const summary = document.querySelector(".c-sheet-summary p");
+  if (!(summary instanceof HTMLElement)) {
+    throw new Error("Missing route summary");
+  }
+  return summary.textContent;
+}
+
 function mockResultSheetLayout(sheet: HTMLElement) {
   const header = sheet.querySelector("thead");
   const timeOptions = sheet.querySelector(".c-sheet-time");
@@ -169,6 +185,7 @@ function mockResultSheetLayout(sheet: HTMLElement) {
 describe("App", () => {
   beforeEach(() => {
     mockedCalculate.mockReset();
+    mockedTrackRouteResultView.mockReset();
     mockedLocation.mockReset();
     mockedPermissionRequest.mockReset();
     mockedPlaces.mockReset();
@@ -238,6 +255,49 @@ describe("App", () => {
     expect(
       await screen.findByRole("heading", { name: /에서.*까지/ }),
     ).toBeVisible();
+  });
+
+  it("records a conversion only after a route result is ready", async () => {
+    mockedCalculate.mockResolvedValue(bundle);
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
+
+    await screen.findByRole("heading", { name: /에서.*까지/ });
+    expect(mockedTrackRouteResultView).toHaveBeenCalledOnce();
+  });
+
+  it("does not record a conversion when route calculation fails", async () => {
+    mockedCalculate.mockRejectedValue(new Error("ROUTE_NOT_FOUND"));
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
+
+    await screen.findByText("가까운 지원 보행로를 찾지 못했어요");
+    expect(mockedTrackRouteResultView).not.toHaveBeenCalled();
+  });
+
+  it("does not record a conversion for an aborted request that resolves later", async () => {
+    let resolveRoute: ((value: RouteBundle) => void) | undefined;
+    mockedCalculate.mockImplementation(
+      () => new Promise<RouteBundle>((resolve) => (resolveRoute = resolve)),
+    );
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
+    expect(resolveRoute).toBeTypeOf("function");
+
+    act(() => window.dispatchEvent(new Event("pagehide")));
+
+    await act(async () => {
+      resolveRoute?.(bundle);
+      await Promise.resolve();
+    });
+
+    expect(mockedTrackRouteResultView).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole("heading", { name: /에서.*까지/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("does not calculate with the previous place while a query is uncommitted", () => {
@@ -395,8 +455,10 @@ describe("App", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "현재 위치로 출발" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "현재 위치는 서울 밖이에요. 선택한 출발지를 유지했어요.",
+    const locationAlert = await screen.findByRole("alert");
+    expect(locationAlert).toHaveTextContent("위치는 정상적으로 확인했어요.");
+    expect(locationAlert).toHaveTextContent(
+      "현재 위치가 서울 밖이라 출발지로 사용할 수 없어요.",
     );
     expect(startInput()).toHaveValue("강남역 11번 출구");
   });
@@ -627,6 +689,45 @@ describe("App", () => {
     expect(
       screen.getByRole("region", { name: "그늘우선 경로 지도" }),
     ).toBeInTheDocument();
+  });
+
+  it("summarizes the selected route against the fastest one", async () => {
+    mockedCalculate.mockResolvedValue(bundle);
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
+    await screen.findByRole("heading", { name: /에서.*까지/ });
+
+    expect(routeSummaryText()).toBe(
+      "균형은 빠른길보다 1분 더 걸리고, 예상 햇빛 노출은 1분 적어요.",
+    );
+    expect(
+      screen.getByText("건물 데이터와 출발 시각을 기준으로 계산한 예상치예요."),
+    ).toBeInTheDocument();
+  });
+
+  it("rewrites the summary when another route is selected", async () => {
+    mockedCalculate.mockResolvedValue(bundle);
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
+    await screen.findByRole("heading", { name: /에서.*까지/ });
+
+    fireEvent.click(screen.getByRole("button", { name: "그늘우선 경로 선택" }));
+
+    expect(routeSummaryText()).toBe(
+      "그늘우선은 빠른길보다 3분 더 걸리고, 예상 햇빛 노출은 2분 적어요.",
+    );
+  });
+
+  it("states absolute exposure instead of comparing the fastest route to itself", async () => {
+    mockedCalculate.mockResolvedValue(bundle);
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
+    await screen.findByRole("heading", { name: /에서.*까지/ });
+
+    fireEvent.click(screen.getByRole("button", { name: "빠른길 경로 선택" }));
+
+    expect(routeSummaryText()).toBe("빠른길의 예상 햇빛 노출은 8분이에요.");
+    expect(routeSummaryText()).not.toContain("빠른길보다");
   });
 
   it("keeps the map and route choices visible when the result sheet is dragged down", async () => {

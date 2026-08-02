@@ -7,12 +7,15 @@ import RouteFeedback from "./components/RouteFeedback";
 import RouteMap from "./components/RouteMap";
 import WeatherBanner from "./components/WeatherBanner";
 import {
+  compareToShortest,
+  comparisonSegments,
   distanceLabel,
   routeByMode,
   sunMinutes,
   walkMinutes,
 } from "./components/routeSummary";
 import { useResultSheetMotion } from "./components/useResultSheetMotion";
+import { trackRouteResultView } from "./domain/analytics/routeAnalytics";
 import {
   CurrentLocationError,
   requestCurrentLocationPermission,
@@ -62,7 +65,7 @@ function locationErrorMessage(error: unknown) {
     return "현재 위치를 가져오지 못했어요. 잠시 후 다시 시도해 주세요.";
   }
   if (error.code === "OUTSIDE_SEOUL") {
-    return "현재 위치는 서울 밖이에요. 선택한 출발지를 유지했어요.";
+    return "위치는 정상적으로 확인했어요. 현재 위치가 서울 밖이라 출발지로 사용할 수 없어요. 서울 안의 출발지를 선택해 주세요.";
   }
   if (error.code === "LOCATION_PERMISSION_DENIED") {
     return "위치 권한을 허용하면 현재 위치에서 출발할 수 있어요.";
@@ -231,6 +234,7 @@ function App() {
           : routeByMode(result.routes, "balanced").mode,
       );
       setStatus("success");
+      trackRouteResultView();
     } catch (error) {
       if (requestId !== latestRequest.current || controller.signal.aborted)
         return;
@@ -345,6 +349,10 @@ function App() {
     ? routeByMode(bundle.routes, selectedMode)
     : null;
   const shortestRoute = bundle ? routeByMode(bundle.routes, "shortest") : null;
+  const routeComparison =
+    selectedRoute && shortestRoute
+      ? compareToShortest(selectedRoute, shortestRoute)
+      : null;
   const samePlace = startId === goalId;
   const recommendedMode: RouteMode =
     weather && offsetMinutes === 0 ? weatherGuidance(weather).mode : "balanced";
@@ -642,6 +650,24 @@ function App() {
               controls="route-sheet-directions"
               {...resultSheetMotion.handleProps}
             />
+
+            {routeComparison && (
+              <div className="c-sheet-summary">
+                <p>
+                  {comparisonSegments(selectedRoute.label, routeComparison).map(
+                    (segment, index) =>
+                      segment.strong ? (
+                        <b key={index}>{segment.text}</b>
+                      ) : (
+                        <span key={index}>{segment.text}</span>
+                      ),
+                  )}
+                </p>
+                <small>
+                  건물 데이터와 출발 시각을 기준으로 계산한 예상치예요.
+                </small>
+              </div>
+            )}
 
             <table
               className="c-sheet-table"
