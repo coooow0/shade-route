@@ -130,7 +130,7 @@ describe("subscribeLiveLocation", () => {
     expect(clearWatch).toHaveBeenCalledWith(41);
   });
 
-  it("reports invalid and outside-Seoul samples but keeps listening", () => {
+  it("reports invalid samples but emits valid locations outside Seoul", () => {
     const startToss = vi.fn(({ onEvent }) => {
       onEvent({
         ...seoulLocation,
@@ -155,16 +155,17 @@ describe("subscribeLiveLocation", () => {
 
     subscribeLiveLocation({ onLocation, onError }, sources({ startToss }));
 
-    expect(onError).toHaveBeenNthCalledWith(
-      1,
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError).toHaveBeenCalledWith(
       expect.objectContaining({ code: "LOCATION_UNAVAILABLE" }),
     );
-    expect(onError).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({ code: "OUTSIDE_SEOUL" }),
+    expect(onLocation).toHaveBeenCalledTimes(2);
+    expect(onLocation).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ lat: 35.1796, lon: 129.0756 }),
     );
-    expect(onLocation).toHaveBeenCalledOnce();
-    expect(onLocation).toHaveBeenCalledWith(
+    expect(onLocation).toHaveBeenNthCalledWith(
+      2,
       expect.objectContaining({ accuracyM: 120 }),
     );
   });

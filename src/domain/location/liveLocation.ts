@@ -4,7 +4,6 @@ import {
   StartUpdateLocationPermissionError,
 } from "@apps-in-toss/web-framework";
 import { CurrentLocationError } from "./currentLocation";
-import { isWithinSeoul } from "./serviceArea";
 
 const UPDATE_INTERVAL_MS = 3_000;
 const UPDATE_DISTANCE_M = 10;
@@ -123,10 +122,6 @@ function normalizeLocation(location: RawLiveLocation): LiveLocationSample {
   ) {
     throw new CurrentLocationError("LOCATION_UNAVAILABLE");
   }
-  if (!isWithinSeoul(latitude, longitude)) {
-    throw new CurrentLocationError("OUTSIDE_SEOUL");
-  }
-
   const normalizedHeading =
     typeof heading === "number" && Number.isFinite(heading)
       ? heading
