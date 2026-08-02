@@ -5,7 +5,7 @@ export default defineConfig({
   brand: {
     displayName: "그늘길",
     primaryColor: "#3182F6",
-    icon: "", // 콘솔에 등록한 앱 아이콘 URL로 교체해야 해요.
+    icon: "https://static.toss.im/appsintoss/58729/4cf5f833-1c9a-490a-b36f-ea92fdaa7539.png",
   },
   web: {
     host: "localhost",
