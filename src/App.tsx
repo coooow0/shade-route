@@ -5,17 +5,18 @@ import ResultSheetHandle from "./components/ResultSheetHandle";
 import RouteDirections from "./components/RouteDirections";
 import RouteFeedback from "./components/RouteFeedback";
 import RouteMap from "./components/RouteMap";
+import RouteRibbons from "./components/RouteRibbons";
 import WeatherBanner from "./components/WeatherBanner";
-import {
-  compareToShortest,
-  comparisonSegments,
-  distanceLabel,
-  routeByMode,
-  sunMinutes,
-  walkMinutes,
-} from "./components/routeSummary";
+import { routeByMode } from "./components/routeSummary";
 import { useResultSheetMotion } from "./components/useResultSheetMotion";
-import { trackRouteResultView } from "./domain/analytics/routeAnalytics";
+import {
+  trackRouteModeSelect,
+  trackRouteResultView,
+  trackRouteSearchFailure,
+  trackRouteSearchStart,
+  type RouteSearchFailureReason,
+  type RouteSearchTrigger,
+} from "./domain/analytics/routeAnalytics";
 import {
   CurrentLocationError,
   requestCurrentLocationPermission,
@@ -60,6 +61,34 @@ interface LocationNotice {
   readonly action?: "request-permission";
 }
 
+interface RouteRecommendation {
+  readonly mode: RouteMode;
+  readonly reason: string;
+}
+
+function routeRecommendation(
+  weather: CurrentWeather | null,
+  offsetMinutes: number,
+): RouteRecommendation {
+  if (offsetMinutes > 0) {
+    return {
+      mode: "balanced",
+      reason: `${offsetMinutes}분 뒤 날씨는 아직 반영하지 않아 균형 경로를 추천해요`,
+    };
+  }
+  if (weather) {
+    const guidance = weatherGuidance(weather);
+    return {
+      mode: guidance.mode,
+      reason: guidance.message,
+    };
+  }
+  return {
+    mode: "balanced",
+    reason: "날씨 연결 없이 균형 경로를 먼저 추천해요",
+  };
+}
+
 function locationErrorMessage(error: unknown) {
   if (!(error instanceof CurrentLocationError)) {
     return "현재 위치를 가져오지 못했어요. 잠시 후 다시 시도해 주세요.";
@@ -74,6 +103,18 @@ function locationErrorMessage(error: unknown) {
     return "위치 오차가 커요. 잠시 후 하늘이 잘 보이는 곳에서 다시 시도해 주세요.";
   }
   return "현재 위치를 가져오지 못했어요. 샌드박스 앱에서 다시 시도해 주세요.";
+}
+
+function routeSearchFailureReason(error: unknown): RouteSearchFailureReason {
+  const errorMessage = error instanceof Error ? error.message : "";
+  if (errorMessage === "ALREADY_NEAR_GOAL") return "near_goal";
+  if (errorMessage === "ROUTE_TOO_LONG") return "too_long";
+  if (errorMessage === "OUTSIDE_SEOUL") return "outside_seoul";
+  if (errorMessage === "ROUTE_DATA_TOO_COMPLEX") return "complex_data";
+  if (errorMessage === "SNAP_FAILED" || errorMessage === "ROUTE_NOT_FOUND") {
+    return "off_network";
+  }
+  return "generic";
 }
 
 function App() {
@@ -99,18 +140,14 @@ function App() {
   const [goalEditing, setGoalEditing] = useState(false);
   const [bundle, setBundle] = useState<RouteBundle | null>(null);
   const [selectedMode, setSelectedMode] = useState<RouteMode>("balanced");
+  const [resultRecommendation, setResultRecommendation] =
+    useState<RouteRecommendation>(() => routeRecommendation(null, 0));
   const resultSheetMotion = useResultSheetMotion();
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
-  const [routeError, setRouteError] = useState<
-    | "generic"
-    | "near-goal"
-    | "off-network"
-    | "too-long"
-    | "outside-seoul"
-    | "complex-data"
-  >("generic");
+  const [routeError, setRouteError] =
+    useState<RouteSearchFailureReason>("generic");
   const latestRequest = useRef(0);
   const activeRouteController = useRef<AbortController | null>(null);
   const latestLocationRequest = useRef(0);
@@ -199,7 +236,10 @@ function App() {
     setRouteError("generic");
   };
 
-  const runSearch = async (offset = offsetMinutes) => {
+  const runSearch = async (
+    offset = offsetMinutes,
+    trigger: RouteSearchTrigger = "submit",
+  ) => {
     if (
       hasUncommittedSearch ||
       startId === goalId ||
@@ -215,6 +255,8 @@ function App() {
     const requestId = ++latestRequest.current;
     setStatus("loading");
     setRouteError("generic");
+    trackRouteSearchStart({ trigger, offsetMinutes: offset });
+    const recommendation = routeRecommendation(weather, offset);
     try {
       const result = await calculateRouteBundleForPlaces(
         {
@@ -226,35 +268,28 @@ function App() {
       );
       if (requestId !== latestRequest.current || controller.signal.aborted)
         return;
-      resultSheetMotion.expand();
+      // 시트 안의 출발 시각 칩으로 재검색한 경우엔 사용자가 이미 시트를
+      // 보고 있으므로 펼침/접힘 상태를 건드리지 않아요.
+      if (trigger !== "departure_time_change") resultSheetMotion.reset();
       setBundle(result);
-      setSelectedMode((current) =>
-        result.routes.some((route) => route.mode === current)
-          ? current
-          : routeByMode(result.routes, "balanced").mode,
-      );
+      setResultRecommendation(recommendation);
+      setSelectedMode((current) => {
+        const preferredMode =
+          trigger === "departure_time_change" ? current : recommendation.mode;
+        return result.routes.some((route) => route.mode === preferredMode)
+          ? preferredMode
+          : routeByMode(result.routes, "balanced").mode;
+      });
       setStatus("success");
       trackRouteResultView();
     } catch (error) {
       if (requestId !== latestRequest.current || controller.signal.aborted)
         return;
       setBundle(null);
-      const errorMessage = error instanceof Error ? error.message : "";
-      setRouteError(
-        errorMessage === "ALREADY_NEAR_GOAL"
-          ? "near-goal"
-          : errorMessage === "ROUTE_TOO_LONG"
-            ? "too-long"
-            : errorMessage === "OUTSIDE_SEOUL"
-              ? "outside-seoul"
-              : errorMessage === "ROUTE_DATA_TOO_COMPLEX"
-                ? "complex-data"
-                : errorMessage === "SNAP_FAILED" ||
-                    errorMessage === "ROUTE_NOT_FOUND"
-                  ? "off-network"
-                  : "generic",
-      );
+      const reason = routeSearchFailureReason(error);
+      setRouteError(reason);
       setStatus("error");
+      trackRouteSearchFailure(reason);
     } finally {
       if (activeRouteController.current === controller) {
         activeRouteController.current = null;
@@ -263,9 +298,15 @@ function App() {
   };
 
   const selectTime = (nextOffset: number) => {
-    if (busy) return;
+    if (busy || nextOffset === offsetMinutes) return;
     setOffsetMinutes(nextOffset);
-    if (bundle) void runSearch(nextOffset);
+    if (bundle) void runSearch(nextOffset, "departure_time_change");
+  };
+
+  const selectRouteMode = (nextMode: RouteMode) => {
+    if (busy || nextMode === selectedMode) return;
+    trackRouteModeSelect(nextMode);
+    setSelectedMode(nextMode);
   };
 
   const swapPlaces = () => {
@@ -349,13 +390,8 @@ function App() {
     ? routeByMode(bundle.routes, selectedMode)
     : null;
   const shortestRoute = bundle ? routeByMode(bundle.routes, "shortest") : null;
-  const routeComparison =
-    selectedRoute && shortestRoute
-      ? compareToShortest(selectedRoute, shortestRoute)
-      : null;
   const samePlace = startId === goalId;
-  const recommendedMode: RouteMode =
-    weather && offsetMinutes === 0 ? weatherGuidance(weather).mode : "balanced";
+  const recommendedMode = resultRecommendation.mode;
   const isResultView =
     bundle !== null &&
     selectedRoute !== null &&
@@ -373,6 +409,14 @@ function App() {
       {!isResultView && (
         <>
           <header className="hero">
+            <div className="hero-brand">
+              <img
+                src="/brand/final/geunulgil-symbol-blue-transparent.svg"
+                alt=""
+                aria-hidden="true"
+              />
+              <strong>그늘길</strong>
+            </div>
             <span className="hero-kicker">서울 전역 · 3km 이내</span>
             <Top
               title={<span className="app-title">오늘, 햇빛을 덜 받는 길</span>}
@@ -488,9 +532,8 @@ function App() {
               {locating ? "위치를 확인하고 있어요" : "현재 위치로 출발"}
             </button>
             <p className="location-privacy">
-              위치는 경로·지도 표시에만 사용하며 앱에 저장하지 않아요. 지도 표시
-              시 주변 영역이 OpenStreetMap에 전달돼요. 날씨는 서울 대표 좌표로
-              조회하며 사용자의 현재 위치를 보내지 않아요.
+              위치는 저장하지 않아요. 지도에는 주변 영역만 전달되고, 날씨에는
+              사용자 위치를 보내지 않아요.
             </p>
             {locationNotice && (
               <div
@@ -515,7 +558,7 @@ function App() {
 
             <div className="time-block">
               <span className="input-label">출발 시각</span>
-              <div className="time-chips">
+              <div className="time-chips" role="group" aria-label="출발 시각">
                 {TIME_OPTIONS.map((option) => (
                   <button
                     key={option.minutes}
@@ -596,34 +639,37 @@ function App() {
         <section className="error-card" aria-live="assertive">
           <div>
             <strong>
-              {routeError === "near-goal"
+              {routeError === "near_goal"
                 ? "이미 도착지 근처예요"
-                : routeError === "too-long"
+                : routeError === "too_long"
                   ? "3km 이내 경로만 지원해요"
-                  : routeError === "outside-seoul"
+                  : routeError === "outside_seoul"
                     ? "서울 안의 장소를 선택해 주세요"
-                    : routeError === "off-network"
+                    : routeError === "off_network"
                       ? "가까운 지원 보행로를 찾지 못했어요"
-                      : routeError === "complex-data"
+                      : routeError === "complex_data"
                         ? "이 지역의 경로 데이터가 너무 복잡해요"
                         : "경로를 불러오지 못했어요"}
             </strong>
             <p>
-              {routeError === "near-goal"
+              {routeError === "near_goal"
                 ? "다른 도착지를 선택해 주세요."
-                : routeError === "too-long"
+                : routeError === "too_long"
                   ? "출발지에서 더 가까운 장소를 선택해 주세요."
-                  : routeError === "outside-seoul"
+                  : routeError === "outside_seoul"
                     ? "현재는 서울 지역만 이용할 수 있어요."
-                    : routeError === "off-network"
+                    : routeError === "off_network"
                       ? "가까운 장소를 선택하거나 현재 위치를 다시 확인해 주세요."
-                      : routeError === "complex-data"
+                      : routeError === "complex_data"
                         ? "더 가까운 장소를 선택해 다시 시도해 주세요."
                         : "데이터 연결을 확인하고 다시 시도해 주세요."}
             </p>
           </div>
           {routeError === "generic" && (
-            <button type="button" onClick={() => void runSearch()}>
+            <button
+              type="button"
+              onClick={() => void runSearch(offsetMinutes, "retry")}
+            >
               다시 시도
             </button>
           )}
@@ -651,126 +697,21 @@ function App() {
               {...resultSheetMotion.handleProps}
             />
 
-            {routeComparison && (
-              <div className="c-sheet-summary">
-                <p>
-                  {comparisonSegments(selectedRoute.label, routeComparison).map(
-                    (segment, index) =>
-                      segment.strong ? (
-                        <b key={index}>{segment.text}</b>
-                      ) : (
-                        <span key={index}>{segment.text}</span>
-                      ),
-                  )}
-                </p>
-                <small>
-                  건물 데이터와 출발 시각을 기준으로 계산한 예상치예요.
-                </small>
-              </div>
-            )}
-
-            <table
-              className="c-sheet-table"
-              aria-label="경로 선택 및 세 경로 지표 비교"
-            >
-              <thead>
-                <tr>
-                  <th scope="col" aria-label="지표" />
-                  {bundle.routes.map((route) => {
-                    const selected = route.mode === selectedRoute.mode;
-                    return (
-                      <th key={route.mode} scope="col">
-                        <button
-                          type="button"
-                          className={
-                            selected
-                              ? "c-sheet-col-header selected"
-                              : "c-sheet-col-header"
-                          }
-                          aria-label={`${route.label} 경로 선택`}
-                          aria-pressed={selected}
-                          disabled={busy}
-                          onClick={() => setSelectedMode(route.mode)}
-                        >
-                          <span>{route.label}</span>
-                          {route.mode === recommendedMode && <em>추천</em>}
-                        </button>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody id="route-sheet-metrics">
-                <tr>
-                  <th scope="row">시간</th>
-                  {bundle.routes.map((route) => (
-                    <td
-                      key={route.mode}
-                      className={
-                        route.mode === selectedRoute.mode ? "selected" : ""
-                      }
-                    >
-                      <b>{walkMinutes(route.timeSec)}</b>분
-                    </td>
-                  ))}
-                </tr>
-                <tr>
-                  <th scope="row">거리</th>
-                  {bundle.routes.map((route) => (
-                    <td
-                      key={route.mode}
-                      className={
-                        route.mode === selectedRoute.mode ? "selected" : ""
-                      }
-                    >
-                      {distanceLabel(route.lengthM)}
-                    </td>
-                  ))}
-                </tr>
-                <tr>
-                  <th scope="row">햇빛</th>
-                  {bundle.routes.map((route) => (
-                    <td
-                      key={route.mode}
-                      className={
-                        route.mode === selectedRoute.mode ? "selected" : ""
-                      }
-                    >
-                      {sunMinutes(route.sunSec)}분
-                    </td>
-                  ))}
-                </tr>
-                <tr>
-                  <th scope="row">예상 그늘</th>
-                  {bundle.routes.map((route) => (
-                    <td
-                      key={route.mode}
-                      className={
-                        route.mode === selectedRoute.mode
-                          ? "selected shade-cell"
-                          : "shade-cell"
-                      }
-                    >
-                      <span className="shade-bar" aria-hidden="true">
-                        <i
-                          style={{
-                            width: `${Math.round(route.shadeRatio * 100)}%`,
-                          }}
-                        />
-                      </span>
-                      <b>{Math.round(route.shadeRatio * 100)}%</b>
-                    </td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
+            <RouteRibbons
+              routes={bundle.routes}
+              selectedMode={selectedRoute.mode}
+              recommendedMode={recommendedMode}
+              start={bundle.start}
+              goal={bundle.goal}
+              busy={busy}
+              onSelect={selectRouteMode}
+            />
 
             <div
               id="route-sheet-time"
               className="c-sheet-time"
               role="group"
               aria-label="출발 시각"
-              data-sheet-peek-end
             >
               {TIME_OPTIONS.map((option) => (
                 <button
@@ -796,14 +737,12 @@ function App() {
                 requestedAt={bundle.requestedAt}
                 goal={bundle.goal}
               />
-              <p className="estimate-note">
-                예상 그늘 · 실제 현장과 다를 수 있어요
-              </p>
               {feedbackWebhookUrl && (
                 <RouteFeedback
                   route={selectedRoute}
                   requestedAt={bundle.requestedAt}
                   webhookUrl={feedbackWebhookUrl}
+                  onDetailOpen={resultSheetMotion.expand}
                 />
               )}
             </div>

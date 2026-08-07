@@ -23,7 +23,7 @@ interface ResultSheetStyle extends CSSProperties {
 }
 
 export function useResultSheetMotion() {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [dragHeight, setDragHeight] = useState<number | null>(null);
   const [peekHeight, setPeekHeight] = useState(DEFAULT_PEEK_HEIGHT_PX);
   const [settling, setSettling] = useState(false);
@@ -41,6 +41,13 @@ export function useResultSheetMotion() {
   const expand = useCallback(() => {
     clearSettleTimer();
     setExpanded(true);
+    setDragHeight(null);
+    setSettling(false);
+  }, [clearSettleTimer]);
+  // 새 검색 결과는 지도를 먼저 보여주도록 접힌(peek) 상태에서 시작해요.
+  const reset = useCallback(() => {
+    clearSettleTimer();
+    setExpanded(false);
     setDragHeight(null);
     setSettling(false);
   }, [clearSettleTimer]);
@@ -103,5 +110,5 @@ export function useResultSheetMotion() {
     ],
   );
 
-  return { expand, handleProps, sheetProps };
+  return { expand, reset, handleProps, sheetProps };
 }

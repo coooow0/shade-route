@@ -30,7 +30,7 @@ const route: RouteResult = {
 };
 
 describe("RouteDirections", () => {
-  it("shows an arrival summary, map, and expanded directions by default", () => {
+  it("shows the route summary first and reveals directions on request", () => {
     render(
       <RouteDirections
         route={route}
@@ -48,12 +48,14 @@ describe("RouteDirections", () => {
     expect(
       screen.getByRole("heading", { name: "상세 경로" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("list", { name: "도보 경로 안내" })).toBeVisible();
-    expect(screen.getByText("역삼역에 도착")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "상세 경로 접기" }));
     expect(screen.queryByLabelText("도보 경로 안내")).not.toBeInTheDocument();
     expect(screen.queryByText("역삼역에 도착")).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "상세 경로 3단계 보기" }),
+    );
+    expect(screen.getByRole("list", { name: "도보 경로 안내" })).toBeVisible();
+    expect(screen.getByText("역삼역에 도착")).toBeInTheDocument();
   });
 
   it("shows a calm fallback for empty geometry", () => {
@@ -100,14 +102,16 @@ describe("RouteDirections", () => {
       />,
     );
 
+    expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+    const expand = screen.getByRole("button", {
+      name: "상세 경로 8단계 보기",
+    });
+    expect(expand).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(expand);
     expect(screen.getAllByRole("listitem")).toHaveLength(8);
-    const collapse = screen.getByRole("button", { name: "상세 경로 접기" });
-    expect(collapse).toHaveAttribute("aria-expanded", "true");
-    fireEvent.click(collapse);
-    expect(screen.queryByLabelText("도보 경로 안내")).not.toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "상세 경로 8단계 보기" }),
-    ).toHaveAttribute("aria-expanded", "false");
+      screen.getByRole("button", { name: "상세 경로 접기" }),
+    ).toHaveAttribute("aria-expanded", "true");
   });
 
   it("refuses to mount an excessive direction list", () => {
@@ -138,12 +142,16 @@ describe("RouteDirections", () => {
 
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
     expect(
-      screen.getByText(/상세 경로가 너무 복잡해 표시하지 못했어요/),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "상세 경로 접기" }));
-    expect(screen.queryAllByRole("listitem")).toHaveLength(0);
-    expect(
       screen.queryByText(/상세 경로가 너무 복잡해 표시하지 못했어요/),
     ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: `상세 경로 ${ROUTE_RESOURCE_LIMITS.directionSteps + 1}단계 보기`,
+      }),
+    );
+    expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+    expect(
+      screen.getByText(/상세 경로가 너무 복잡해 표시하지 못했어요/),
+    ).toBeInTheDocument();
   });
 });

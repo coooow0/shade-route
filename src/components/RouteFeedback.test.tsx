@@ -1,8 +1,30 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import RouteFeedback from "./RouteFeedback";
 import { APP_VERSION } from "../appVersion";
+import {
+  trackRouteFeedbackImpression,
+  trackRouteFeedbackSelect,
+  trackRouteFeedbackSubmit,
+} from "../domain/analytics/routeAnalytics";
 import type { RouteResult } from "../domain/routing/types";
+
+vi.mock("../domain/analytics/routeAnalytics", () => ({
+  trackRouteFeedbackImpression: vi.fn(),
+  trackRouteFeedbackSelect: vi.fn(),
+  trackRouteFeedbackSubmit: vi.fn(),
+}));
+
+const mockedTrackImpression = vi.mocked(trackRouteFeedbackImpression);
+const mockedTrackSelect = vi.mocked(trackRouteFeedbackSelect);
+const mockedTrackSubmit = vi.mocked(trackRouteFeedbackSubmit);
 
 const route: RouteResult = {
   mode: "balanced",
@@ -17,6 +39,46 @@ const route: RouteResult = {
 
 const REQUESTED_AT = "2026-07-25T08:00:00.000Z";
 const WEBHOOK = "https://example.com/webhook";
+let intersectionCallback: IntersectionObserverCallback | null = null;
+
+class MockIntersectionObserver implements IntersectionObserver {
+  readonly root = null;
+  readonly rootMargin = "0px";
+  readonly thresholds = [0];
+
+  constructor(callback: IntersectionObserverCallback) {
+    intersectionCallback = callback;
+  }
+
+  disconnect = vi.fn();
+  observe = vi.fn();
+  takeRecords = () => [];
+  unobserve = vi.fn();
+}
+
+function revealFeedback(): void {
+  const callback = intersectionCallback;
+  const target = screen
+    .getByRole("heading", { name: "이 경로가 실제와 얼마나 맞았어요?" })
+    .closest("section");
+  if (!callback || !target) throw new Error("Missing feedback observer");
+  act(() => {
+    callback(
+      [
+        {
+          boundingClientRect: target.getBoundingClientRect(),
+          intersectionRatio: 1,
+          intersectionRect: target.getBoundingClientRect(),
+          isIntersecting: true,
+          rootBounds: null,
+          target,
+          time: 0,
+        },
+      ],
+      {} as IntersectionObserver,
+    );
+  });
+}
 
 function makeStorage(): Storage {
   const map = new Map<string, string>();
@@ -39,6 +101,155 @@ function makeStorage(): Storage {
 describe("RouteFeedback", () => {
   beforeEach(() => {
     vi.useRealTimers();
+    intersectionCallback = null;
+    mockedTrackImpression.mockReset();
+    mockedTrackSelect.mockReset();
+    mockedTrackSubmit.mockReset();
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+  });
+
+  it("initially shows only the three compact satisfaction choices", () => {
+    const onDetailOpen = vi.fn();
+
+    render(
+      <RouteFeedback
+        route={route}
+        requestedAt={REQUESTED_AT}
+        webhookUrl={WEBHOOK}
+        storage={makeStorage()}
+        onDetailOpen={onDetailOpen}
+      />,
+    );
+
+    const choices = within(
+      screen.getByRole("group", { name: "정확도 만족도" }),
+    ).getAllByRole("button");
+    expect(choices.map((choice) => choice.textContent)).toEqual([
+      "좋음",
+      "보통",
+      "나쁨",
+    ]);
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "보내기" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "취소" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "보통" }));
+
+    expect(screen.getAllByRole("textbox")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "보내기" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "취소" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "보통" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(onDetailOpen).toHaveBeenCalledOnce();
+  });
+
+  it("records the prompt only once when it actually becomes visible", () => {
+    render(
+      <RouteFeedback
+        route={route}
+        requestedAt={REQUESTED_AT}
+        webhookUrl={WEBHOOK}
+        storage={makeStorage()}
+      />,
+    );
+
+    expect(mockedTrackImpression).not.toHaveBeenCalled();
+    revealFeedback();
+    revealFeedback();
+
+    expect(mockedTrackImpression).toHaveBeenCalledExactlyOnceWith("balanced");
+  });
+
+  it("records a newly selected route prompt separately", () => {
+    const storage = makeStorage();
+    const { rerender } = render(
+      <RouteFeedback
+        route={route}
+        requestedAt={REQUESTED_AT}
+        webhookUrl={WEBHOOK}
+        storage={storage}
+      />,
+    );
+    revealFeedback();
+
+    rerender(
+      <RouteFeedback
+        route={{ ...route, mode: "maxShade", pathKey: "shade-key" }}
+        requestedAt={REQUESTED_AT}
+        webhookUrl={WEBHOOK}
+        storage={storage}
+      />,
+    );
+
+    expect(mockedTrackImpression).toHaveBeenCalledTimes(1);
+    revealFeedback();
+    expect(mockedTrackImpression).toHaveBeenNthCalledWith(2, "maxShade");
+  });
+
+  it("records satisfaction changes and successful submission", async () => {
+    const submit = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <RouteFeedback
+        route={route}
+        requestedAt={REQUESTED_AT}
+        webhookUrl={WEBHOOK}
+        submit={submit}
+        storage={makeStorage()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "나쁨" }));
+    fireEvent.click(screen.getByRole("button", { name: "나쁨" }));
+    fireEvent.click(screen.getByRole("button", { name: "보내기" }));
+
+    expect(mockedTrackSelect).toHaveBeenCalledExactlyOnceWith(
+      "balanced",
+      "bad",
+    );
+    await waitFor(() => expect(submit).toHaveBeenCalledOnce());
+    expect(mockedTrackSubmit).toHaveBeenCalledExactlyOnceWith(
+      "balanced",
+      "bad",
+    );
+  });
+
+  it("resets a draft when the same path is recalculated", () => {
+    const storage = makeStorage();
+    const { rerender } = render(
+      <RouteFeedback
+        route={route}
+        requestedAt={REQUESTED_AT}
+        webhookUrl={WEBHOOK}
+        storage={storage}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "나쁨" }));
+    fireEvent.change(screen.getByLabelText(/무엇이 달랐나요/), {
+      target: { value: "이전 검색의 메모" },
+    });
+
+    rerender(
+      <RouteFeedback
+        route={route}
+        requestedAt="2026-07-25T08:30:00.000Z"
+        webhookUrl={WEBHOOK}
+        storage={storage}
+      />,
+    );
+
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "나쁨" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
   });
 
   it("collects satisfaction, memo, and wanted-city then submits with route metrics", async () => {
@@ -82,9 +293,7 @@ describe("RouteFeedback", () => {
       },
       { webhookUrl: WEBHOOK },
     );
-    expect(
-      await screen.findByText(/피드백 고마워요/),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/피드백 고마워요/)).toBeInTheDocument();
     expect(
       storage.getItem(`shade-route:feedback:${route.pathKey}`),
     ).toBeTruthy();
@@ -137,6 +346,7 @@ describe("RouteFeedback", () => {
       screen.queryByRole("button", { name: /좋음/ }),
     ).not.toBeInTheDocument();
     expect(submit).not.toHaveBeenCalled();
+    expect(mockedTrackImpression).not.toHaveBeenCalled();
   });
 
   it("shows an inline error and allows retry when the submission fails", async () => {
@@ -162,13 +372,13 @@ describe("RouteFeedback", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "피드백을 보내지 못했어요",
     );
+    expect(mockedTrackSubmit).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "보내기" }));
 
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(2));
-    expect(
-      await screen.findByText(/피드백 고마워요/),
-    ).toBeInTheDocument();
+    expect(mockedTrackSubmit).toHaveBeenCalledOnce();
+    expect(await screen.findByText(/피드백 고마워요/)).toBeInTheDocument();
   });
 
   it("still submits when getItem/setItem are missing (broken storage)", async () => {
@@ -244,6 +454,8 @@ describe("RouteFeedback", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "취소" }));
     expect(screen.queryByLabelText(/무엇이 달랐나요/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "보내기" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "보내기" }),
+    ).not.toBeInTheDocument();
   });
 });

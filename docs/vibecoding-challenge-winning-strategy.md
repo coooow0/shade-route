@@ -139,14 +139,15 @@ P0는 다음 순서로 진행한다.
 
 ### 2. 대표 전환을 실제 배포 데이터로 측정해야 한다
 
-현재 로컬 코드에는 경로 계산 성공 후 `route_result_view`를 기록하는 변경이 있다.
+현재 코드는 검색 시작부터 결과·실패, 모드 선택, 피드백 행동까지 기록한다.
 
 - 대표 전환: `route_result_view`
-- 보조 전환 후보: `route_search_submit`
-- 보조 전환 후보: 경로 모드 선택 또는 결과 공유
-- 진단 이벤트: `route_search_error`
+- 검색 시작: `route_search_start`
+- 진단 이벤트: `route_search_failure`
+- 경로 선택: `route_mode_select`
+- 피드백: `route_feedback_impression`, `route_feedback_select`, `route_feedback_submit`
 
-오류 이벤트에는 검색어, 장소명, 좌표를 넣지 않는다. `near-goal`, `too-long`, `outside-seoul`, `complex-data`, `off-network`, `generic`처럼 제한된 오류 코드만 기록한다.
+오류 이벤트에는 검색어, 장소명, 좌표를 넣지 않는다. `near_goal`, `too_long`, `outside_seoul`, `complex_data`, `off_network`, `generic`처럼 제한된 오류 코드만 기록한다. 피드백 분석 이벤트에도 자유 메모와 요청 도시를 넣지 않는다.
 
 배포 후 콘솔의 `분석 > 이벤트`에서 이벤트 수집을 확인하고, `핵심 지표`에서 `route_result_view`를 대표 전환으로 설정한다. 토스 안내에 따르면 지표 변경은 다음 날부터 적용된다.
 

@@ -10,6 +10,7 @@ const DRAG_THRESHOLD_PX = 40;
 const TAP_SLOP_PX = 6;
 const COLLAPSED_BOTTOM_GAP_PX = 8;
 const DEFAULT_PEEK_HEIGHT_PX = 312;
+const EXPANDED_VIEWPORT_RATIO = 0.66;
 
 interface ResultSheetHandleProps extends ResultSheetMotionHandleProps {
   readonly controls: string;
@@ -54,7 +55,7 @@ function sheetMeasurements(
     measuredPeekHeight > 0
       ? Math.ceil(measuredPeekHeight + COLLAPSED_BOTTOM_GAP_PX)
       : DEFAULT_PEEK_HEIGHT_PX;
-  const viewportMaxHeight = globalThis.innerHeight * 0.62;
+  const viewportMaxHeight = globalThis.innerHeight * EXPANDED_VIEWPORT_RATIO;
   const contentHeight = sheet.scrollHeight || sheetRect.height || peekHeight;
   const calculatedExpandedHeight = Math.max(
     peekHeight,

@@ -7,7 +7,15 @@ import {
 } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
-import { trackRouteResultView } from "./domain/analytics/routeAnalytics";
+import {
+  trackRouteFeedbackImpression,
+  trackRouteFeedbackSelect,
+  trackRouteFeedbackSubmit,
+  trackRouteModeSelect,
+  trackRouteResultView,
+  trackRouteSearchFailure,
+  trackRouteSearchStart,
+} from "./domain/analytics/routeAnalytics";
 import { loadSeoulPlaces } from "./domain/places/loadSeoulPlaces";
 import {
   CurrentLocationError,
@@ -19,7 +27,13 @@ import { loadCurrentWeather } from "./domain/weather/currentWeather";
 import type { RouteBundle, RouteResult } from "./domain/routing/types";
 
 vi.mock("./domain/analytics/routeAnalytics", () => ({
+  trackRouteFeedbackImpression: vi.fn(),
+  trackRouteFeedbackSelect: vi.fn(),
+  trackRouteFeedbackSubmit: vi.fn(),
+  trackRouteModeSelect: vi.fn(),
   trackRouteResultView: vi.fn(),
+  trackRouteSearchFailure: vi.fn(),
+  trackRouteSearchStart: vi.fn(),
 }));
 
 vi.mock("./domain/routing/routeWorkerClient", () => ({
@@ -49,7 +63,13 @@ vi.mock("./domain/weather/currentWeather", async () => {
 });
 
 const mockedCalculate = vi.mocked(calculateRouteBundleForPlaces);
+const mockedTrackFeedbackImpression = vi.mocked(trackRouteFeedbackImpression);
+const mockedTrackFeedbackSelect = vi.mocked(trackRouteFeedbackSelect);
+const mockedTrackFeedbackSubmit = vi.mocked(trackRouteFeedbackSubmit);
+const mockedTrackRouteModeSelect = vi.mocked(trackRouteModeSelect);
 const mockedTrackRouteResultView = vi.mocked(trackRouteResultView);
+const mockedTrackRouteSearchFailure = vi.mocked(trackRouteSearchFailure);
+const mockedTrackRouteSearchStart = vi.mocked(trackRouteSearchStart);
 const mockedLocation = vi.mocked(resolveCurrentPlace);
 const mockedPermissionRequest = vi.mocked(requestCurrentLocationPermission);
 const mockedPlaces = vi.mocked(loadSeoulPlaces);
@@ -124,18 +144,28 @@ const bundle: RouteBundle = {
   ],
 };
 
-// 요약 문장은 숫자만 강조하려고 여러 조각으로 나뉜다. getByText는 자식 요소가 있는
-// 노드를 건너뛰므로 문단 전체 텍스트를 직접 읽는다.
-function routeSummaryText() {
-  const summary = document.querySelector(".c-sheet-summary p");
-  if (!(summary instanceof HTMLElement)) {
-    throw new Error("Missing route summary");
+function selectedRibbonText() {
+  const card = document.querySelector(".ribbon-card.selected");
+  if (!(card instanceof HTMLElement)) {
+    throw new Error("Missing selected ribbon card");
   }
-  return summary.textContent;
+  return card.textContent;
+}
+
+function ribbonPartClasses(routeLabel: string) {
+  const card = [...document.querySelectorAll(".ribbon-card")].find((node) =>
+    node.textContent?.startsWith(routeLabel),
+  );
+  if (!(card instanceof HTMLElement)) {
+    throw new Error(`Missing ribbon card for ${routeLabel}`);
+  }
+  return [...card.querySelectorAll(".ribbon-part")].map((part) =>
+    part.className.replace("ribbon-part ", ""),
+  );
 }
 
 function mockResultSheetLayout(sheet: HTMLElement) {
-  const header = sheet.querySelector("thead");
+  const header = sheet.querySelector(".ribbon-cards");
   const timeOptions = sheet.querySelector(".c-sheet-time");
   if (
     !(header instanceof HTMLElement) ||
@@ -185,7 +215,13 @@ function mockResultSheetLayout(sheet: HTMLElement) {
 describe("App", () => {
   beforeEach(() => {
     mockedCalculate.mockReset();
+    mockedTrackFeedbackImpression.mockReset();
+    mockedTrackFeedbackSelect.mockReset();
+    mockedTrackFeedbackSubmit.mockReset();
+    mockedTrackRouteModeSelect.mockReset();
     mockedTrackRouteResultView.mockReset();
+    mockedTrackRouteSearchFailure.mockReset();
+    mockedTrackRouteSearchStart.mockReset();
     mockedLocation.mockReset();
     mockedPermissionRequest.mockReset();
     mockedPlaces.mockReset();
@@ -209,6 +245,9 @@ describe("App", () => {
     expect(
       screen.getByRole("button", { name: "현재 위치로 출발" }),
     ).toBeEnabled();
+    expect(
+      screen.getByRole("group", { name: "출발 시각" }),
+    ).toBeInTheDocument();
   });
 
   it("shows current weather without blocking route search", async () => {
@@ -238,9 +277,12 @@ describe("App", () => {
     await screen.findByText("그늘 우선 경로를 추천해요");
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
     const shadeRoute = await screen.findByRole("button", {
-      name: "그늘우선 경로 선택",
+      name: new RegExp("^그늘우선 경로 선택"),
     });
     expect(shadeRoute).toHaveTextContent("추천");
+    expect(shadeRoute).toHaveAttribute("aria-pressed", "true");
+    expect(selectedRibbonText()).toContain("그늘우선");
+    expect(shadeRoute).toHaveTextContent("· 선택됨");
   });
 
   it("keeps route search usable when weather fails", async () => {
@@ -255,6 +297,7 @@ describe("App", () => {
     expect(
       await screen.findByRole("heading", { name: /에서.*까지/ }),
     ).toBeVisible();
+    expect(selectedRibbonText()).toContain("균형");
   });
 
   it("records a conversion only after a route result is ready", async () => {
@@ -264,7 +307,26 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
 
     await screen.findByRole("heading", { name: /에서.*까지/ });
+    expect(mockedTrackRouteSearchStart).toHaveBeenCalledExactlyOnceWith({
+      trigger: "submit",
+      offsetMinutes: 0,
+    });
     expect(mockedTrackRouteResultView).toHaveBeenCalledOnce();
+    expect(mockedTrackRouteModeSelect).not.toHaveBeenCalled();
+  });
+
+  it("records search start before route calculation settles", () => {
+    mockedCalculate.mockImplementation(() => new Promise(() => undefined));
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
+
+    expect(mockedTrackRouteSearchStart).toHaveBeenCalledExactlyOnceWith({
+      trigger: "submit",
+      offsetMinutes: 0,
+    });
+    expect(mockedTrackRouteResultView).not.toHaveBeenCalled();
+    expect(mockedTrackRouteSearchFailure).not.toHaveBeenCalled();
   });
 
   it("does not record a conversion when route calculation fails", async () => {
@@ -274,6 +336,9 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
 
     await screen.findByText("가까운 지원 보행로를 찾지 못했어요");
+    expect(mockedTrackRouteSearchFailure).toHaveBeenCalledExactlyOnceWith(
+      "off_network",
+    );
     expect(mockedTrackRouteResultView).not.toHaveBeenCalled();
   });
 
@@ -295,6 +360,7 @@ describe("App", () => {
     });
 
     expect(mockedTrackRouteResultView).not.toHaveBeenCalled();
+    expect(mockedTrackRouteSearchFailure).not.toHaveBeenCalled();
     expect(
       screen.queryByRole("heading", { name: /에서.*까지/ }),
     ).not.toBeInTheDocument();
@@ -575,10 +641,10 @@ describe("App", () => {
       screen.queryByRole("combobox", { name: "출발지 검색" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "빠른길 경로 선택" }),
+      screen.getByRole("button", { name: new RegExp("^빠른길 경로 선택") }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "균형 경로 선택" }),
+      screen.getByRole("button", { name: new RegExp("^균형 경로 선택") }),
     ).toHaveAttribute("aria-pressed", "true");
     expect(
       screen.getByRole("region", { name: "균형 경로 지도" }),
@@ -681,28 +747,68 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
     await screen.findByRole("heading", { name: /에서.*까지/ });
 
-    fireEvent.click(screen.getByRole("button", { name: "그늘우선 경로 선택" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: new RegExp("^그늘우선 경로 선택") }),
+    );
 
     expect(
-      screen.getByRole("button", { name: "그늘우선 경로 선택" }),
+      screen.getByRole("button", { name: new RegExp("^그늘우선 경로 선택") }),
     ).toHaveAttribute("aria-pressed", "true");
     expect(
       screen.getByRole("region", { name: "그늘우선 경로 지도" }),
     ).toBeInTheDocument();
   });
 
-  it("summarizes the selected route against the fastest one", async () => {
+  it("opens the result sheet collapsed so the map is seen first", async () => {
     mockedCalculate.mockResolvedValue(bundle);
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
     await screen.findByRole("heading", { name: /에서.*까지/ });
 
-    expect(routeSummaryText()).toBe(
-      "균형은 빠른길보다 1분 더 걸리고, 예상 햇빛 노출은 1분 적어요.",
-    );
+    expect(screen.getByLabelText("경로 정보")).toHaveClass("is-collapsed");
     expect(
-      screen.getByText("건물 데이터와 출발 시각을 기준으로 계산한 예상치예요."),
+      screen.getByRole("button", { name: "경로 정보 펼치기" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.getByRole("group", { name: "경로 선택 및 세 경로 비교" }),
     ).toBeInTheDocument();
+  });
+
+  it("compares the three routes as time and sunlight ribbons", async () => {
+    mockedCalculate.mockResolvedValue(bundle);
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
+    await screen.findByRole("heading", { name: /에서.*까지/ });
+
+    expect(
+      screen.getByRole("button", {
+        name: "빠른길 경로 선택 · 12분 · 햇빛 8분",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "균형 경로 선택 · 13분 · 햇빛 7분" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "그늘우선 경로 선택 · 15분 · 햇빛 6분",
+      }),
+    ).toBeInTheDocument();
+
+    // 선택된 카드에만 출발지·도착지 이름이 붙어요.
+    expect(selectedRibbonText()).toContain("균형");
+    expect(selectedRibbonText()).toContain("강남역 11번 출구");
+    expect(selectedRibbonText()).toContain("역삼역");
+  });
+
+  it("paints each route ribbon from its shade and sun segments", async () => {
+    mockedCalculate.mockResolvedValue(bundle);
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
+    await screen.findByRole("heading", { name: /에서.*까지/ });
+
+    // 목 데이터에서 그늘우선만 shadeRatio 0.8, 나머지는 0.2예요.
+    expect(ribbonPartClasses("그늘우선")).toEqual(["shade"]);
+    expect(ribbonPartClasses("빠른길")).toEqual(["sun"]);
   });
 
   it("rewrites the summary when another route is selected", async () => {
@@ -711,11 +817,17 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
     await screen.findByRole("heading", { name: /에서.*까지/ });
 
-    fireEvent.click(screen.getByRole("button", { name: "그늘우선 경로 선택" }));
-
-    expect(routeSummaryText()).toBe(
-      "그늘우선은 빠른길보다 3분 더 걸리고, 예상 햇빛 노출은 2분 적어요.",
+    fireEvent.click(
+      screen.getByRole("button", { name: new RegExp("^그늘우선 경로 선택") }),
     );
+
+    expect(mockedTrackRouteModeSelect).toHaveBeenCalledExactlyOnceWith(
+      "maxShade",
+    );
+    expect(selectedRibbonText()).toContain("그늘우선");
+    expect(selectedRibbonText()).toContain("· 선택됨");
+    expect(selectedRibbonText()).toContain("15분");
+    expect(selectedRibbonText()).toContain("햇빛 6분");
   });
 
   it("states absolute exposure instead of comparing the fastest route to itself", async () => {
@@ -724,10 +836,12 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
     await screen.findByRole("heading", { name: /에서.*까지/ });
 
-    fireEvent.click(screen.getByRole("button", { name: "빠른길 경로 선택" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: new RegExp("^빠른길 경로 선택") }),
+    );
 
-    expect(routeSummaryText()).toBe("빠른길의 예상 햇빛 노출은 8분이에요.");
-    expect(routeSummaryText()).not.toContain("빠른길보다");
+    expect(selectedRibbonText()).toContain("빠른길");
+    expect(selectedRibbonText()).toContain("햇빛 8분");
   });
 
   it("keeps the map and route choices visible when the result sheet is dragged down", async () => {
@@ -736,9 +850,10 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
     await screen.findByRole("heading", { name: /에서.*까지/ });
 
-    const handle = screen.getByRole("button", { name: "경로 정보 접기" });
     const sheet = screen.getByLabelText("경로 정보");
     mockResultSheetLayout(sheet);
+    fireEvent.click(screen.getByRole("button", { name: "경로 정보 펼치기" }));
+    const handle = screen.getByRole("button", { name: "경로 정보 접기" });
     fireEvent.pointerDown(handle, {
       button: 0,
       clientY: 100,
@@ -775,19 +890,21 @@ describe("App", () => {
       screen.getByRole("region", { name: "균형 경로 지도" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "빠른길 경로 선택" }),
+      screen.getByRole("button", { name: new RegExp("^빠른길 경로 선택") }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "균형 경로 선택" }),
+      screen.getByRole("button", { name: new RegExp("^균형 경로 선택") }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "그늘우선 경로 선택" }),
+      screen.getByRole("button", { name: new RegExp("^그늘우선 경로 선택") }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("group", { name: "출발 시각" }),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "그늘우선 경로 선택" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: new RegExp("^그늘우선 경로 선택") }),
+    );
     expect(
       screen.getByRole("region", { name: "그늘우선 경로 지도" }),
     ).toBeInTheDocument();
@@ -799,21 +916,7 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
     await screen.findByRole("heading", { name: /에서.*까지/ });
 
-    const expandedHandle = screen.getByRole("button", {
-      name: "경로 정보 접기",
-    });
-    fireEvent.pointerDown(expandedHandle, {
-      button: 0,
-      clientY: 100,
-      isPrimary: true,
-      pointerId: 1,
-    });
-    fireEvent.pointerUp(expandedHandle, {
-      button: 0,
-      clientY: 148,
-      isPrimary: true,
-      pointerId: 1,
-    });
+    expect(screen.getByLabelText("경로 정보")).toHaveClass("is-collapsed");
 
     const collapsedHandle = screen.getByRole("button", {
       name: "경로 정보 펼치기",
@@ -851,15 +954,19 @@ describe("App", () => {
     expect(
       await screen.findByRole("heading", { name: "상세 경로" }),
     ).toBeInTheDocument();
+    expect(screen.queryByLabelText("도보 경로 안내")).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "상세 경로 2단계 보기" }),
+    );
     expect(screen.getByLabelText("도보 경로 안내")).toBeInTheDocument();
     expect(screen.getByText("역삼역에 도착")).toBeInTheDocument();
     expect(
       screen.getByRole("status", { name: "균형 경로, 13분, 2단계" }),
     ).toHaveTextContent("예상 그늘 43%");
-    fireEvent.click(screen.getByRole("button", { name: "상세 경로 접기" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: new RegExp("^그늘우선 경로 선택") }),
+    );
     expect(screen.queryByLabelText("도보 경로 안내")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "그늘우선 경로 선택" }));
     expect(
       screen.getByRole("status", { name: "그늘우선 경로, 15분, 2단계" }),
     ).toHaveTextContent("예상 그늘 60%");
@@ -881,6 +988,14 @@ describe("App", () => {
       await screen.findByRole("heading", { name: /에서.*까지/ }),
     ).toBeInTheDocument();
     expect(mockedCalculate).toHaveBeenCalledTimes(2);
+    expect(mockedTrackRouteSearchStart).toHaveBeenNthCalledWith(1, {
+      trigger: "submit",
+      offsetMinutes: 0,
+    });
+    expect(mockedTrackRouteSearchStart).toHaveBeenNthCalledWith(2, {
+      trigger: "retry",
+      offsetMinutes: 0,
+    });
   });
 
   it("explains the three-kilometer route limit", async () => {
@@ -892,6 +1007,23 @@ describe("App", () => {
     expect(
       await screen.findByText("3km 이내 경로만 지원해요"),
     ).toBeInTheDocument();
+    expect(mockedTrackRouteSearchFailure).toHaveBeenCalledExactlyOnceWith(
+      "too_long",
+    );
+  });
+
+  it("records an outside-Seoul route failure without location details", async () => {
+    mockedCalculate.mockRejectedValue(new Error("OUTSIDE_SEOUL"));
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
+
+    expect(
+      await screen.findByText("서울 안의 장소를 선택해 주세요"),
+    ).toBeInTheDocument();
+    expect(mockedTrackRouteSearchFailure).toHaveBeenCalledExactlyOnceWith(
+      "outside_seoul",
+    );
   });
 
   it("explains when route data exceeds the WebView work budget", async () => {
@@ -906,6 +1038,9 @@ describe("App", () => {
     expect(
       screen.getByText("더 가까운 장소를 선택해 다시 시도해 주세요."),
     ).toBeInTheDocument();
+    expect(mockedTrackRouteSearchFailure).toHaveBeenCalledExactlyOnceWith(
+      "complex_data",
+    );
   });
 
   it("explains when the current start is already at the goal", async () => {
@@ -918,6 +1053,9 @@ describe("App", () => {
     expect(
       screen.queryByText("데이터 연결을 확인하고 다시 시도해 주세요."),
     ).not.toBeInTheDocument();
+    expect(mockedTrackRouteSearchFailure).toHaveBeenCalledExactlyOnceWith(
+      "near_goal",
+    );
   });
 
   it("explains when no supported footpath is close enough", async () => {
@@ -934,6 +1072,9 @@ describe("App", () => {
         "가까운 장소를 선택하거나 현재 위치를 다시 확인해 주세요.",
       ),
     ).toBeInTheDocument();
+    expect(mockedTrackRouteSearchFailure).toHaveBeenCalledExactlyOnceWith(
+      "off_network",
+    );
   });
 
   it("clears stale routes when a place changes", async () => {
@@ -973,8 +1114,7 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
 
     await screen.findByRole("heading", { name: /에서.*까지/ });
-    const sunRow = screen.getByRole("row", { name: /^햇빛/ });
-    expect(sunRow).toHaveTextContent(/^햇빛0분0분0분$/);
+    expect(selectedRibbonText()).toContain("햇빛 0분");
   });
 
   it("recalculates results when the departure time changes", async () => {
@@ -983,14 +1123,38 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
     await screen.findByRole("heading", { name: /에서.*까지/ });
 
-    fireEvent.click(screen.getByRole("button", { name: "그늘우선 경로 선택" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: new RegExp("^그늘우선 경로 선택") }),
+    );
     fireEvent.click(screen.getByRole("button", { name: "30분 뒤" }));
 
     await waitFor(() => expect(mockedCalculate).toHaveBeenCalledTimes(2));
+    expect(mockedTrackRouteSearchStart).toHaveBeenNthCalledWith(2, {
+      trigger: "departure_time_change",
+      offsetMinutes: 30,
+    });
     expect(mockedCalculate.mock.calls[1][0].offsetMinutes).toBe(30);
     expect(
-      screen.getByRole("button", { name: "그늘우선 경로 선택" }),
+      screen.getByRole("button", { name: new RegExp("^그늘우선 경로 선택") }),
     ).toHaveAttribute("aria-pressed", "true");
+    // 사용자가 고른 경로는 그대로 두고, 앱 추천만 균형으로 옮겨가요.
+    expect(selectedRibbonText()).toContain("그늘우선");
+    expect(selectedRibbonText()).not.toContain("추천");
+    expect(
+      screen.getByRole("button", { name: new RegExp("^균형 경로 선택") }),
+    ).toHaveTextContent("추천");
+  });
+
+  it("does not recalculate when the selected departure time is clicked again", async () => {
+    mockedCalculate.mockResolvedValue(bundle);
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
+    await screen.findByRole("heading", { name: /에서.*까지/ });
+
+    fireEvent.click(screen.getByRole("button", { name: "지금" }));
+
+    expect(mockedCalculate).toHaveBeenCalledOnce();
+    expect(mockedTrackRouteSearchStart).toHaveBeenCalledOnce();
   });
 
   it("returns to the filled search screen without recalculating", async () => {
@@ -1022,6 +1186,7 @@ describe("App", () => {
         name: "이 경로가 실제와 얼마나 맞았어요?",
       }),
     ).not.toBeInTheDocument();
+    expect(mockedTrackFeedbackImpression).not.toHaveBeenCalled();
   });
 
   it("renders the feedback widget and preserves route interactions when the webhook env is set", async () => {
@@ -1038,9 +1203,11 @@ describe("App", () => {
     ).toBeInTheDocument();
 
     // Mode switching still works next to the widget.
-    fireEvent.click(screen.getByRole("button", { name: "그늘우선 경로 선택" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: new RegExp("^그늘우선 경로 선택") }),
+    );
     expect(
-      screen.getByRole("button", { name: "그늘우선 경로 선택" }),
+      screen.getByRole("button", { name: new RegExp("^그늘우선 경로 선택") }),
     ).toHaveAttribute("aria-pressed", "true");
 
     // Back button still routes to the search screen.
@@ -1051,5 +1218,19 @@ describe("App", () => {
         name: "이 경로가 실제와 얼마나 맞았어요?",
       }),
     ).not.toBeInTheDocument();
+  });
+
+  it("expands a collapsed result sheet when feedback details open", async () => {
+    vi.stubEnv("VITE_FEEDBACK_WEBHOOK_URL", "https://example.com/hook");
+    mockedCalculate.mockResolvedValue(bundle);
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "그늘 경로 찾기" }));
+
+    await screen.findByRole("heading", { name: /에서.*까지/ });
+    expect(screen.getByLabelText("경로 정보")).toHaveClass("is-collapsed");
+
+    fireEvent.click(screen.getByRole("button", { name: "좋음" }));
+
+    expect(screen.getByLabelText("경로 정보")).not.toHaveClass("is-collapsed");
   });
 });
